@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
@@ -17,4 +17,40 @@ model Post {
     updatedAt DateTime @updatedAt
 
     @@index([name])
+}
+
+model Team {
+    id           Int      @id @default(autoincrement())
+    team         String   @unique
+    mascot       String
+    location     String
+    conference   String
+    division     String
+    league       String
+    abbreviation String
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+    awayGames    Game[]   @relation("AwayTeam")
+    homeGames    Game[]   @relation("HomeTeam")
+
+    @@index([team])
+}
+
+model Game {
+    id             Int      @id @default(autoincrement())
+    date           DateTime
+    seasonType     String
+    season         Int
+    conferenceGame Boolean
+    divisionGame   Boolean
+    neutralSite    Boolean
+    awayTeamId     Int
+    homeTeamId     Int
+    awayPeriods    Json
+    homePeriods    Json
+    totalOpenTotal Float
+    awayTeam       Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+    homeTeam       Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
 }
