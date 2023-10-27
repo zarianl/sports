@@ -2,7 +2,7 @@
 import { type GetServerSideProps } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Container, Button, Modal, Grid, FormControl, InputLabel, Select, MenuItem, Box, Typography, TextField } from '@mui/material';
-import { ChangeEvent, useState } from 'react';
+import {  useState } from 'react';
 import { type SelectChangeEvent } from '@mui/material';
 
 const prisma = new PrismaClient();
