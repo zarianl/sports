@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type GetServerSideProps } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Container, Button, Modal, Grid, FormControl, InputLabel, Select, MenuItem, Box, Typography, TextField } from '@mui/material';
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { type SelectChangeEvent } from '@mui/material';
 
 const prisma = new PrismaClient();
@@ -155,8 +156,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ teams }) => {
     const [awayTeam, setAwayTeam] = useState<string>()
     const [line, setLine] = useState<number>()
 
-    const handleChangeTeam = (event: SelectChangeEvent<string>, destination: 'home' | 'away') => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const handleChangeTeam = (event: SelectChangeEvent, destination: 'home' | 'away') => {
         const value = event.target.value as string;
         if (destination === 'home') {
             setHomeTeam(value);
@@ -189,7 +189,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ teams }) => {
                                     labelId="team1-label"
                                     id="team1"
                                     value={homeTeam}
-                                    onChange={(event: SelectChangeEvent<string>) => handleChangeTeam(event, 'home')}
+                                    onChange={(event) => handleChangeTeam(event, 'home')}
                                 >
                                     {teams.sort((a, b) => a.team.localeCompare(b.team)).map((team) => (
                                         <MenuItem key={team.id} value={team.id}>{team.team}</MenuItem>
@@ -209,7 +209,7 @@ const TeamsPage: React.FC<TeamsPageProps> = ({ teams }) => {
                                     labelId="team2-label"
                                     id="team2"
                                     value={awayTeam}
-                                    onChange={(event: SelectChangeEvent<string>) => handleChangeTeam(event, 'away')}
+                                    onChange={(event) => handleChangeTeam(event, 'away')}
                                 >
                                     {teams.sort((a, b) => a.team.localeCompare(b.team)).map((team) => (
                                         <MenuItem key={team.id} value={team.id}>{team.team}</MenuItem>
