@@ -26,8 +26,8 @@ model Team {
     location     String
     conference   String
     division     String
-    league       String
-    abbreviation String
+    league       String?
+    abbreviation String?
     createdAt    DateTime @default(now())
     updatedAt    DateTime @updatedAt
     awayGames    Game[]   @relation("AwayTeam")
@@ -41,6 +41,8 @@ model Game {
     date           DateTime
     seasonType     String
     season         Int
+      gameId Int    @unique
+
     conferenceGame Boolean
     divisionGame   Boolean
     neutralSite    Boolean
@@ -53,4 +55,9 @@ model Game {
     homeTeam       Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
     createdAt      DateTime @default(now())
     updatedAt      DateTime @updatedAt
+    predictedHalfScore  Float
+    actualHalfScore Int?
+    estimatedHalfLine Float?
+    overUnder       String?
+    winLoss         String?
 }

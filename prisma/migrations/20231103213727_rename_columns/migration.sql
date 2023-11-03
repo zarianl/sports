@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Game" ALTER COLUMN "estimatedHalfLine" DROP NOT NULL,
+ALTER COLUMN "overUnder" DROP NOT NULL,
+ALTER COLUMN "winLoss" DROP NOT NULL;

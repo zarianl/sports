@@ -1,7 +1,7 @@
 import { Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { PrismaClient } from '@prisma/client';
-import axios from 'axios';
+import axios, { type AxiosResponse } from 'axios';
 import { type GetServerSideProps } from 'next';
 
 const prisma = new PrismaClient();
@@ -17,6 +17,10 @@ interface Game {
     }
     schedule: {
         date: string
+    }
+    odds: {
+        open: number,
+        current: number
     }
 }
 
@@ -92,16 +96,37 @@ export const getServerSideProps: GetServerSideProps = async () => {
         })),
     }));
 
+    let games = await prisma.game.findMany();
+
+        games = games.map(game => ({
+            gameId: game.gameId,
+            estimatedHalfLine: game.estimatedHalfLine,
+            predictedHalfLine: game.predictedHalfLine ? game.predictedHalfLine : null,
+            actualHalfScore: game.actualHalfScore,
+            overUnder: game.overUnder,
+            winLoss: game.winLoss,
+        }));
+
     return {
         props: {
             teams,
+            gamesProp: games
         },
     };
 };
 
-const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
+const GamesPage: React.FC<TeamsPageProps> = ({ teams,gamesProp }) => {
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [games, setGames] = useState<Game[]>([]);
+    const [wins, setWins] = useState(0)
+    const [loss, setLoss] = useState(0)
+
+    useEffect(() => {
+        const winGames = gamesProp.filter(game => game.winLoss === "Win");
+        setWins(winGames.length);
+        const lossGames = gamesProp.filter(game => game.winLoss === "Loss");
+        setLoss(lossGames.length);
+    }, [gamesProp]);
 
     useEffect(() => {
         if (selectedDate) {
@@ -118,8 +143,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
                 }
             };
 
-            axios.request(options).then((response) => {
-                setGames(response.data.results.map((game: Game) => ({
+            axios.request(options).then((response: AxiosResponse) => {
+                console.log('response', response.data.results)
+                const responseGames: Game[] = response.data.results.map((game: any) => ({
                     teams: {
                         away: {
                             team: game.teams.away.team
@@ -130,8 +156,16 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
                     },
                     schedule: {
                         date: game.schedule.date
-                    }
-                })));
+                    },
+                    ...(game.odds && game.odds.length > 0 ? {
+                        odds: {
+                            current: game.odds[0].total.current.total,
+                            open: game.odds[0].total.open.total
+                        }
+                    } : {}),
+                    scoreboard: game.scoreboard
+                }))
+                setGames(responseGames);
             }).catch((error) => {
                 console.error(error);
             });
@@ -141,6 +175,32 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
     const handleDateChange = (date: Date | null) => {
         setSelectedDate(date);
     };
+
+
+
+    useEffect(() => {
+        games.forEach(game => {
+            const homeTeam = teams.find(t => t.team === game.teams.home.team);
+            const awayTeam = teams.find(t => t.team === game.teams.away.team);
+
+            let awayScore, homeScore, predictedScore = 0;
+            if (homeTeam && awayTeam) {
+                awayScore = Math.round((
+                    getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
+                    getAverageFirstHalfScore(awayTeam, 'away', 'allow')
+                ) / 2 * 10) / 10;
+                homeScore = Math.round((
+                    getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
+                    getAverageFirstHalfScore(awayTeam, 'home', 'allow')
+                ) / 2 * 10) / 10
+                predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
+            }
+            const halfTimeScore = game.scoreboard?.score.awayPeriods[0] + game.scoreboard?.score.homePeriods[0];
+            const predictedHalfLine = game.odds ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
+            const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
+            
+        });
+    }, [games]);
 
     const getAverageFirstHalfScore = (team: TeamWithGames, homeOrAway: 'home' | 'away', scoresOrAllow: 'scores' | 'allow') => {
         let totalScore = 0;
@@ -191,6 +251,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
                     shrink: true,
                 }}
             />
+            Wins: {wins}
+            Losses: {loss}
+            Win Rate: {((loss / wins) * 100).toFixed(2)}%
             {Array.isArray(games) && games.length > 0 && (
                 <TableContainer>
                     <Table>
@@ -202,6 +265,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
                                 <TableCell>Away Average Score</TableCell>
                                 <TableCell>Home Average Score</TableCell>
                                 <TableCell>Predicted Score</TableCell>
+                                <TableCell>Estimated Half Line</TableCell>
+                                <TableCell>Actual Half Score</TableCell>
+                                <TableCell>Win/Loss</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -219,17 +285,29 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams }) => {
                                         getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
                                         getAverageFirstHalfScore(awayTeam, 'home', 'allow')
                                     ) / 2 * 10) / 10
-                                    predictedScore = Math.round(((awayScore + homeScore)/2)*10)/10
+                                    predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
                                 }
+                                console.log('Game', game)
+                                const halfTimeScore = game.scoreboard?.score.awayPeriods[0] + game.scoreboard?.score.homePeriods[0];
+                                const predictedHalfLine = game.odds ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
+                                const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
 
                                 return (
-                                    <TableRow key={index}>
+                                    <TableRow key={index} className={game.odds && Math.abs(predictedScore - Math.round(game.odds.open * 0.5 * 2) / 2) > 3 ? 'bg-red-200' : ''}>
                                         <TableCell>{game.teams.away.team}</TableCell>
                                         <TableCell>{game.teams.home.team}</TableCell>
                                         <TableCell>{new Date(game.schedule.date).toLocaleDateString()}</TableCell>
                                         <TableCell>{awayScore}</TableCell>
                                         <TableCell>{homeScore}</TableCell>
                                         <TableCell>{predictedScore}</TableCell>
+
+                                        {predictedHalfLine && (
+                                            <>
+                                                <TableCell>{predictedHalfLine}</TableCell>
+                                            </>
+                                        )}
+                                        <TableCell>{halfTimeScore}</TableCell>
+                                        <TableCell>{winLoss}</TableCell>
                                     </TableRow>
                                 );
                             })}
