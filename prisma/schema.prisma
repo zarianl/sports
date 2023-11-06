@@ -50,7 +50,6 @@ model Game {
     homeTeamId     Int
     awayPeriods    Json
     homePeriods    Json
-    totalOpenTotal Float
     awayTeam       Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
     homeTeam       Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
     createdAt      DateTime @default(now())

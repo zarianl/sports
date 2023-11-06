@@ -26,7 +26,7 @@ interface TeamWithGames {
     location: string;
     conference: string;
     division: string;
-    abbreviation: string;
+    abbreviation: string | null;
     awayGames: GameWithoutTimestamps[];
     homeGames: GameWithoutTimestamps[];
 }

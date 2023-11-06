@@ -3,29 +3,15 @@ import { useState, useEffect } from 'react';
 import { PrismaClient } from '@prisma/client';
 import axios, { type AxiosResponse } from 'axios';
 import { type GetServerSideProps } from 'next';
+import { type Game } from '@prisma/client';
+import { getAverageFirstHalfScore } from '~/utils/getAverageFirstHalfScore';
 
 const prisma = new PrismaClient();
 
-interface Game {
-    teams: {
-        away: {
-            team: string
-        },
-        home: {
-            team: string
-        }
-    }
-    schedule: {
-        date: string
-    }
-    odds: {
-        open: number,
-        current: number
-    }
-}
 
 interface TeamsPageProps {
-    teams: TeamWithGames[]
+    teams: TeamWithGames[],
+    gamesProp: GameProps[]
 }
 
 interface TeamWithGames {
@@ -34,7 +20,7 @@ interface TeamWithGames {
     location: string;
     conference: string;
     division: string;
-    abbreviation: string;
+    abbreviation?: string | null;
     awayGames: GameWithoutTimestamps[];
     homeGames: GameWithoutTimestamps[];
 }
@@ -44,6 +30,14 @@ interface GameWithoutTimestamps {
     seasonType: string;
     awayPeriods: unknown;
     homePeriods: unknown;
+}
+
+interface GameProps {
+    estimatedHalfLine: number;
+    predictedHalfLine: number | null;
+    actualHalfScore: number;
+    overUnder: number;
+    winLoss: string;
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
@@ -98,14 +92,19 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
     let games = await prisma.game.findMany();
 
-        games = games.map(game => ({
-            gameId: game.gameId,
-            estimatedHalfLine: game.estimatedHalfLine,
-            predictedHalfLine: game.predictedHalfLine ? game.predictedHalfLine : null,
-            actualHalfScore: game.actualHalfScore,
-            overUnder: game.overUnder,
-            winLoss: game.winLoss,
-        }));
+    games = games.map((game: Game) => ({
+        ...game,
+        id: game.id,
+        date: new Date(game.date).toISOString(),
+        createdAt: new Date(game.createdAt).toISOString(),
+        updatedAt: new Date(game.updatedAt).toISOString(),
+        gameId: game.gameId,
+        estimatedHalfLine: game.estimatedHalfLine,
+        predictedHalfLine: game.predictedHalfScore ? game.predictedHalfScore : null,
+        actualHalfScore: game.actualHalfScore,
+        overUnder: game.overUnder,
+        winLoss: game.winLoss,
+    }));
 
     return {
         props: {
@@ -115,7 +114,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
     };
 };
 
-const GamesPage: React.FC<TeamsPageProps> = ({ teams,gamesProp }) => {
+const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [games, setGames] = useState<Game[]>([]);
     const [wins, setWins] = useState(0)
@@ -178,66 +177,70 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams,gamesProp }) => {
 
 
 
-    useEffect(() => {
-        games.forEach(game => {
-            const homeTeam = teams.find(t => t.team === game.teams.home.team);
-            const awayTeam = teams.find(t => t.team === game.teams.away.team);
+    // useEffect(() => {
+    //     games.forEach(game => {
+    //         const homeTeam = teams.find(t => t.team === game.teams.home.team);
+    //         const awayTeam = teams.find(t => t.team === game.teams.away.team);
 
-            let awayScore, homeScore, predictedScore = 0;
-            if (homeTeam && awayTeam) {
-                awayScore = Math.round((
-                    getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
-                    getAverageFirstHalfScore(awayTeam, 'away', 'allow')
-                ) / 2 * 10) / 10;
-                homeScore = Math.round((
-                    getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
-                    getAverageFirstHalfScore(awayTeam, 'home', 'allow')
-                ) / 2 * 10) / 10
-                predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
-            }
-            const halfTimeScore = game.scoreboard?.score.awayPeriods[0] + game.scoreboard?.score.homePeriods[0];
-            const predictedHalfLine = game.odds ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
-            const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
-            
-        });
-    }, [games]);
+    //         let awayScore, homeScore, predictedScore = 0;
+    //         if (homeTeam && awayTeam) {
+    //             awayScore = Math.round((
+    //                 getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
+    //                 getAverageFirstHalfScore(awayTeam, 'away', 'allow')
+    //             ) / 2 * 10) / 10;
+    //             homeScore = Math.round((
+    //                 getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
+    //                 getAverageFirstHalfScore(awayTeam, 'home', 'allow')
+    //             ) / 2 * 10) / 10
+    //             predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
+    //         }
+    //         let halfTimeScore
+    //         if (game?.scoreboard?.score?.awayPeriods?.length) {
+    //             halfTimeScore = game.scoreboard?.score?.awayPeriods?.[0] ?? 0 + game.scoreboard?.score?.homePeriods?.[0] ?? 0;
+    //         }
 
-    const getAverageFirstHalfScore = (team: TeamWithGames, homeOrAway: 'home' | 'away', scoresOrAllow: 'scores' | 'allow') => {
-        let totalScore = 0;
-        let totalGames = 0;
+    //         const predictedHalfLine = game.odds && game.odds.open ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
+    //         const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
 
-        try {
-            team.awayGames.forEach(game => {
-                if (scoresOrAllow === 'scores' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
-                    totalScore += Number(game.awayPeriods[0]);
-                    totalGames++;
-                }
-                if (scoresOrAllow === 'allow' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
-                    totalScore += Number(game.homePeriods[0]);
-                    totalGames++;
-                }
-            });
+    //     });
+    // }, [games]);
 
-            team.homeGames.forEach(game => {
-                if (scoresOrAllow === 'scores' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
-                    totalScore += Number(game.homePeriods[0]);
-                    totalGames++;
-                }
-                if (scoresOrAllow === 'allow' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
-                    totalScore += Number(game.awayPeriods[0]);
-                    totalGames++;
-                }
-            });
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                console.error(`Error calculating average first half score: ${error.message}`);
-            } else {
-                console.error(`Error calculating average first half score: $${String(error)}`);
-            }
-        }
+    // const getAverageFirstHalfScore = (team: TeamWithGames, homeOrAway: 'home' | 'away', scoresOrAllow: 'scores' | 'allow') => {
+    //     let totalScore = 0;
+    //     let totalGames = 0;
 
-        return totalGames > 0 ? totalScore / totalGames : 0;
-    };
+    //     try {
+    //         team.awayGames.forEach(game => {
+    //             if (scoresOrAllow === 'scores' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
+    //                 totalScore += Number(game.awayPeriods[0]);
+    //                 totalGames++;
+    //             }
+    //             if (scoresOrAllow === 'allow' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
+    //                 totalScore += Number(game.homePeriods[0]);
+    //                 totalGames++;
+    //             }
+    //         });
+
+    //         team.homeGames.forEach(game => {
+    //             if (scoresOrAllow === 'scores' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
+    //                 totalScore += Number(game.homePeriods[0]);
+    //                 totalGames++;
+    //             }
+    //             if (scoresOrAllow === 'allow' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
+    //                 totalScore += Number(game.awayPeriods[0]);
+    //                 totalGames++;
+    //             }
+    //         });
+    //     } catch (error: unknown) {
+    //         if (error instanceof Error) {
+    //             console.error(`Error calculating average first half score: ${error.message}`);
+    //         } else {
+    //             console.error(`Error calculating average first half score: $${String(error)}`);
+    //         }
+    //     }
+
+    //     return totalGames > 0 ? totalScore / totalGames : 0;
+    // };
 
     return (
         <Container>
@@ -288,12 +291,15 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams,gamesProp }) => {
                                     predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
                                 }
                                 console.log('Game', game)
-                                const halfTimeScore = game.scoreboard?.score.awayPeriods[0] + game.scoreboard?.score.homePeriods[0];
-                                const predictedHalfLine = game.odds ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
+                                let halfTimeScore
+                                if (game?.scoreboard?.score?.awayPeriods?.length) {
+                                    halfTimeScore = game.scoreboard?.score?.awayPeriods?.[0] ?? 0 + game.scoreboard?.score?.homePeriods?.[0] ?? 0;
+                                }
+                                const predictedHalfLine = game.odds && game.odds.open ? Math.round(game.odds.open * 0.47 * 2) / 2 : null;
                                 const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
 
                                 return (
-                                    <TableRow key={index} className={game.odds && Math.abs(predictedScore - Math.round(game.odds.open * 0.5 * 2) / 2) > 3 ? 'bg-red-200' : ''}>
+                                    <TableRow key={index} className={game.odds && Math.abs(predictedScore - Math.round(game.odds.open * 0.46 * 2) / 2) > 3 ? 'bg-red-200' : ''}>
                                         <TableCell>{game.teams.away.team}</TableCell>
                                         <TableCell>{game.teams.home.team}</TableCell>
                                         <TableCell>{new Date(game.schedule.date).toLocaleDateString()}</TableCell>
@@ -301,11 +307,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams,gamesProp }) => {
                                         <TableCell>{homeScore}</TableCell>
                                         <TableCell>{predictedScore}</TableCell>
 
-                                        {predictedHalfLine && (
-                                            <>
-                                                <TableCell>{predictedHalfLine}</TableCell>
-                                            </>
-                                        )}
+
+                                        <TableCell>{predictedHalfLine ?? " "}</TableCell>
+
                                         <TableCell>{halfTimeScore}</TableCell>
                                         <TableCell>{winLoss}</TableCell>
                                     </TableRow>

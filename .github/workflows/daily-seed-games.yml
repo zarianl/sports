@@ -1,0 +1,12 @@
+name: Daily Seed Games
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # This will run the job every day at midnight
+
+jobs:
+  seedGames:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel function
+        run: curl -X POST https://your-vercel-app-url.com/api/seedGames

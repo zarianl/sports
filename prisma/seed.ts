@@ -118,11 +118,12 @@ interface GameResponse {
   }>;
 }
 
-async function seedGames() {
-  await prisma.game.deleteMany({})
+export async function seedGames() {
+  // await prisma.game.deleteMany({})
   let skip = 0;
   let results = [];
   do {
+    options.params.date = new Date().toISOString().split('T')[0]!
     options.params.skip = skip;
     const { data } = await axios.request<GameResponse>(options);
     results = data.results;
@@ -163,7 +164,7 @@ async function seedGames() {
       }
 
       let awayScore, homeScore, predictedHalfLine = 0;
-      if (homeTeam && awayTeam) {
+      if (homeTeam?.abbreviation && awayTeam?.abbreviation) {
         awayScore = Math.round((
           getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
           getAverageFirstHalfScore(awayTeam, 'away', 'allow')
