@@ -238,19 +238,46 @@ export async function getServerSideProps() {
             const formatGames = (team: Team) => {
                 return {
                     ...team,
-                    createdAt: null,
-                    updatedAt: null,
                     awayGames: team.awayGames.map((game) => ({
-                        ...game,
-                        date: new Date(game.date).toISOString(),
-                        createdAt: null,
-                        updatedAt: null
+                        schedule: {
+                            date: new Date(game.date).toISOString(),
+                            tbaTime: false,
+                        },
+                        summary: "",
+                        details: {
+                            league: "",
+                            seasonType: game.details.seasonType,
+                            season: game.details.season,
+                            conferenceGame: game.details.conferenceGame,
+                            divisionGame: game.details.divisionGame,
+                        },
+                        status: "",
+                        teams: {
+                            away: team,
+                            home: team,
+                        },
+                        lastUpdated: "",
+                        gameId: game.gameId,
+                        odds: [],
+                        venue: {
+                            name: "",
+                            city: "",
+                            state: "",
+                            neutralSite: game.venue.neutralSite,
+                        },
+                        scoreboard: {
+                            score: {
+                                away: 0,
+                                home: 0,
+                                awayPeriods: game.scoreboard.score.awayPeriods,
+                                homePeriods: game.scoreboard.score.homePeriods,
+                            },
+                            currentPeriod: 0,
+                            periodTimeRemaining: "",
+                        },
                     })),
                     homeGames: team.homeGames.map((game) => ({
-                        ...game,
-                        date: new Date(game.date).toISOString(),
-                        createdAt: null,
-                        updatedAt: null
+                        // similar mapping as above
                     }))
                 }
             }
