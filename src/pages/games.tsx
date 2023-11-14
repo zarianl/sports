@@ -176,72 +176,6 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
     };
 
 
-
-    // useEffect(() => {
-    //     games.forEach(game => {
-    //         const homeTeam = teams.find(t => t.team === game.teams.home.team);
-    //         const awayTeam = teams.find(t => t.team === game.teams.away.team);
-
-    //         let awayScore, homeScore, predictedScore = 0;
-    //         if (homeTeam && awayTeam) {
-    //             awayScore = Math.round((
-    //                 getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
-    //                 getAverageFirstHalfScore(awayTeam, 'away', 'allow')
-    //             ) / 2 * 10) / 10;
-    //             homeScore = Math.round((
-    //                 getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
-    //                 getAverageFirstHalfScore(awayTeam, 'home', 'allow')
-    //             ) / 2 * 10) / 10
-    //             predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
-    //         }
-    //         let halfTimeScore
-    //         if (game?.scoreboard?.score?.awayPeriods?.length) {
-    //             halfTimeScore = game.scoreboard?.score?.awayPeriods?.[0] ?? 0 + game.scoreboard?.score?.homePeriods?.[0] ?? 0;
-    //         }
-
-    //         const predictedHalfLine = game.odds && game.odds.open ? Math.round(game.odds.open * 0.5 * 2) / 2 : null;
-    //         const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
-
-    //     });
-    // }, [games]);
-
-    // const getAverageFirstHalfScore = (team: TeamWithGames, homeOrAway: 'home' | 'away', scoresOrAllow: 'scores' | 'allow') => {
-    //     let totalScore = 0;
-    //     let totalGames = 0;
-
-    //     try {
-    //         team.awayGames.forEach(game => {
-    //             if (scoresOrAllow === 'scores' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
-    //                 totalScore += Number(game.awayPeriods[0]);
-    //                 totalGames++;
-    //             }
-    //             if (scoresOrAllow === 'allow' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
-    //                 totalScore += Number(game.homePeriods[0]);
-    //                 totalGames++;
-    //             }
-    //         });
-
-    //         team.homeGames.forEach(game => {
-    //             if (scoresOrAllow === 'scores' && homeOrAway === 'home' && Array.isArray(game.homePeriods) && game.homePeriods.length > 0) {
-    //                 totalScore += Number(game.homePeriods[0]);
-    //                 totalGames++;
-    //             }
-    //             if (scoresOrAllow === 'allow' && homeOrAway === 'away' && Array.isArray(game.awayPeriods) && game.awayPeriods.length > 0) {
-    //                 totalScore += Number(game.awayPeriods[0]);
-    //                 totalGames++;
-    //             }
-    //         });
-    //     } catch (error: unknown) {
-    //         if (error instanceof Error) {
-    //             console.error(`Error calculating average first half score: ${error.message}`);
-    //         } else {
-    //             console.error(`Error calculating average first half score: $${String(error)}`);
-    //         }
-    //     }
-
-    //     return totalGames > 0 ? totalScore / totalGames : 0;
-    // };
-
     return (
         <Container>
             <TextField
@@ -269,12 +203,14 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
                                 <TableCell>Home Average Score</TableCell>
                                 <TableCell>Predicted Score</TableCell>
                                 <TableCell>Estimated Half Line</TableCell>
+                                <TableCell>Away Periods</TableCell>
+                                <TableCell>Home Periods</TableCell>
                                 <TableCell>Actual Half Score</TableCell>
                                 <TableCell>Win/Loss</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {games.map((game, index) => {
+                            {games.sort((a, b) => a.teams.away.team.localeCompare(b.teams.away.team)).map((game, index) => {
                                 const homeTeam = teams.find(t => t.team === game.teams.home.team);
                                 const awayTeam = teams.find(t => t.team === game.teams.away.team);
 
@@ -291,15 +227,18 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
                                     predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
                                 }
                                 console.log('Game', game)
-                                let halfTimeScore
-                                if (game?.scoreboard?.score?.awayPeriods?.length) {
-                                    halfTimeScore = game.scoreboard?.score?.awayPeriods?.[0] ?? 0 + game.scoreboard?.score?.homePeriods?.[0] ?? 0;
-                                }
+                                let halfTimeScore = 0
+                                const awayPeriodsScore = game.scoreboard?.score?.awayPeriods[0]
+                                const homePeriodsScore = game.scoreboard?.score?.homePeriods[0]
+                                halfTimeScore = awayPeriodsScore + homePeriodsScore
                                 const predictedHalfLine = game.odds && game.odds.open ? Math.round(game.odds.open * 0.47 * 2) / 2 : null;
+                                const overUnder = predictedScore < predictedHalfLine ? 'under' : 'over';
                                 const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
-
+                                const dif = Math.round(Math.abs(predictedScore - predictedHalfLine))
+                                if(!awayScore || !homeScore) return
+                                const tableRowClass = `bg-${overUnder === 'under' ? 'red' : 'green'}-${Math.min(dif, 9) * 100}`;
                                 return (
-                                    <TableRow key={index} className={game.odds && Math.abs(predictedScore - Math.round(game.odds.open * 0.46 * 2) / 2) > 3 ? 'bg-red-200' : ''}>
+                                    <TableRow key={index} className={tableRowClass } >
                                         <TableCell>{game.teams.away.team}</TableCell>
                                         <TableCell>{game.teams.home.team}</TableCell>
                                         <TableCell>{new Date(game.schedule.date).toLocaleDateString()}</TableCell>
@@ -309,7 +248,8 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
 
 
                                         <TableCell>{predictedHalfLine ?? " "}</TableCell>
-
+                                        <TableCell>{game.scoreboard?.score.awayPeriods[0]}</TableCell>
+                                        <TableCell>{game.scoreboard?.score.homePeriods[0]}</TableCell>
                                         <TableCell>{halfTimeScore}</TableCell>
                                         <TableCell>{winLoss}</TableCell>
                                     </TableRow>

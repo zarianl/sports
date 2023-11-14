@@ -299,16 +299,16 @@ export async function getServerSideProps() {
             try {
                 estimatedHalfLine = game.odds?.[0]?.total?.open.total ? Math.round(game.odds[0].total.open.total * 0.46 * 2) / 2 : null;
             } catch (error) {
-                estimatedHalfLine = 999;
+                estimatedHalfLine = null;
             }
-            if (estimatedHalfLine !== null && isNaN(estimatedHalfLine)) {
-                estimatedHalfLine = 999;
-            }
+            // if (estimatedHalfLine !== null && isNaN(estimatedHalfLine)) {
+            //     estimatedHalfLine = 999;
+            // }
 
             const actualHalfScore = (game.scoreboard?.score?.awayPeriods?.[0] ?? 0) + (game.scoreboard?.score?.homePeriods?.[0] ?? 0) || null;
             const overUnder = estimatedHalfLine === null ? null : (predictedHalfScore && predictedHalfScore < estimatedHalfLine ? "Under" : "Over");
 
-            const winLoss = actualHalfScore === null || !predictedHalfScore || !overUnder ? null : 
+            const winLoss = estimatedHalfLine === null || actualHalfScore === null || !predictedHalfScore || !overUnder ? null : 
                 (overUnder === "Under" && predictedHalfScore < actualHalfScore) ? "Win" :
                 (overUnder === "Over" && predictedHalfScore > actualHalfScore) ? "Win" : "Loss";
 
