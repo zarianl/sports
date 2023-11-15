@@ -37,26 +37,25 @@ model Team {
 }
 
 model Game {
-    id             Int      @id @default(autoincrement())
-    date           DateTime
-    seasonType     String
-    season         Int
-      gameId Int    @unique
-
-    conferenceGame Boolean
-    divisionGame   Boolean
-    neutralSite    Boolean
-    awayTeamId     Int
-    homeTeamId     Int
-    awayPeriods    Json
-    homePeriods    Json
-    awayTeam       Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
-    homeTeam       Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
-    predictedHalfScore  Float
-    actualHalfScore Int?
-    estimatedHalfLine Float?
-    overUnder       String?
-    winLoss         String?
+    id         Int      @id @default(autoincrement())
+    date       DateTime
+    seasonType String
+    season     Int
+    gameId     Int      @unique
+    conferenceGame     Boolean
+    divisionGame       Boolean
+    neutralSite        Boolean
+    awayTeamId         Int
+    homeTeamId         Int
+    awayPeriods        Json
+    homePeriods        Json
+    awayTeam           Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+    homeTeam           Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    predictedHalfScore Float
+    actualHalfScore    Int?
+    estimatedHalfLine  Float?
+    overUnder          String?
+    winLoss            String?
 }

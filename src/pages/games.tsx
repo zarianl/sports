@@ -207,6 +207,7 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
                                 <TableCell>Home Periods</TableCell>
                                 <TableCell>Actual Half Score</TableCell>
                                 <TableCell>Win/Loss</TableCell>
+                                <TableCell>Dif</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -252,6 +253,7 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
                                         <TableCell>{game.scoreboard?.score.homePeriods[0]}</TableCell>
                                         <TableCell>{halfTimeScore}</TableCell>
                                         <TableCell>{winLoss}</TableCell>
+                                        <TableCell>{dif}</TableCell>
                                     </TableRow>
                                 );
                             })}
