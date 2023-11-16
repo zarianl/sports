@@ -14,7 +14,7 @@ import axios, { type AxiosResponse } from "axios";
 import { type GetServerSideProps } from "next";
 import { type Game } from "@prisma/client";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
-import { SportspageGame, SportspageGameFeed } from "~/types";
+import { type SportspageGame, type SportspageGameFeed } from "~/types";
 
 const prisma = new PrismaClient();
 
@@ -52,8 +52,8 @@ interface GameProps {
 const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
   const homeTeam = teams.find((t) => t.team === game.teams.home.team)!;
   const awayTeam = teams.find((t) => t.team === game.teams.away.team)!;
-  let awayScore: number,
-    homeScore: number,
+  let awayScore = 0,
+    homeScore = 0,
     predictedScore = 0;
   if (homeTeam && awayTeam) {
     awayScore =
@@ -73,21 +73,27 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
 
     predictedScore = Math.round((awayScore + homeScore) * 10) / 10;
   }
-  let halfTimeScore = 0;
   const awayPeriodsScore = game.scoreboard?.score?.awayPeriods[0] ?? 0;
   const homePeriodsScore = game.scoreboard?.score?.homePeriods[0] ?? 0;
-  halfTimeScore = awayPeriodsScore + homePeriodsScore;
+  const halfTimeScore = awayPeriodsScore + homePeriodsScore || null;
 
   const predictedHalfLine = game.odds?.[0]
-    ? game.odds[0].total.current.total * 0.46
+    ? Math.round((game.odds[0].total.current.total * 0.46) * 2) / 2
     : 0;
 
   const overUnder = predictedScore < predictedHalfLine ? "under" : "over";
-  const winLoss =
-    (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) ||
-    (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine)
-      ? "Loss"
-      : "Win";
+  let winLoss: string | null = null;
+  if (halfTimeScore !== null && game.status !== 'in progress') {
+    winLoss =
+      (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) ||
+      (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine)
+        ? "Loss"
+        : "Win";
+  }
+  if (!homeTeam || !awayTeam || !awayScore || !homeScore || !predictedScore) {
+    return;
+  }
+    
   return {
     ...game,
     homeTeam,
@@ -97,6 +103,7 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
     predictedScore: predictedScore,
     predictedHalfLine: predictedHalfLine,
     overUnder: overUnder ? overUnder : "",
+    halfTimeScore,
     winLoss,
   };
 };
@@ -209,8 +216,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
         .then((response: SportspageGameFeed) => {
           const responseGames = response.data.results
             .sort((a, b) => a.teams.away.team.localeCompare(b.teams.away.team))
-            .map((game) => getGamePredictions(game, teams));
-            console.log(responseGames)
+            .map((game) => getGamePredictions(game, teams))
+            .filter((game) => game !== undefined);
+          console.log(responseGames);
           setGames(responseGames);
         })
         .catch((error) => {
@@ -237,7 +245,8 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
       />
       Wins: {wins}
       Losses: {loss}
-      Win Rate: {((loss / wins) * 100).toFixed(2)}%
+      Win Rate: {wins && loss ? ((loss / wins) * 100).toFixed(2) : 'N/A'}%
+      Today's Win Rate: {games && games.length > 0 ? ((games.filter((game: any) => game.winLoss === "Win").length / games.filter((game: any) => game.winLoss !== null).length) * 100).toFixed(2) : 'N/A'}%
       {Array.isArray(games) && games.length > 0 && (
         <TableContainer>
           <Table>
@@ -257,13 +266,13 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {games.map((game, index) => {
+              {games?.map((game, index) => {
                 return (
                   <TableRow key={index}>
                     <TableCell>{game.awayTeam?.team}</TableCell>
                     <TableCell>{game.homeTeam?.team}</TableCell>
                     <TableCell>
-                      {new Date(game.schedule.date).toLocaleDateString()}
+                      {new Date(game.schedule.date).toLocaleString("en-US", {timeZone: "America/Chicago"})}
                     </TableCell>
                     <TableCell>{game.awayScore}</TableCell>
                     <TableCell>{game.homeScore}</TableCell>
