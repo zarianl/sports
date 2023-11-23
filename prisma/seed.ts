@@ -23,7 +23,7 @@ export async function seedGames() {
   let skip = 0;
   let results = [];
   do {
-    // options.params.date = new Date().toISOString().split('T')[0]!
+    options.params.date = new Date().toISOString().split('T')[0]!
     options.params.skip = skip;
     const sportsPageGames: SportspageGameFeed = await axios.request(options);
     results = sportsPageGames.data.results;
@@ -56,6 +56,7 @@ export async function seedGames() {
       }))
       if (!homeTeam) {
         if (!game.teams?.home?.team || !game.teams?.home?.mascot) return
+        console.log("game.teams.home", game.teams.home)
         homeTeam = await db.team.create({
           data: {
             team: game.teams.home.team,
@@ -122,8 +123,8 @@ export async function seedGames() {
           await db.game.update({
             where: { gameId: game.gameId },
             data: {
-              awayPeriods: game.scoreboard.score?.awayPeriods || null,
-              homePeriods: game.scoreboard.score?.homePeriods || null,
+              awayPeriods: game.scoreboard?.score?.awayPeriods || [],
+              homePeriods: game.scoreboard?.score?.homePeriods || [],
               estimatedHalfLine: estimatedHalfLine,
               actualHalfScore: actualHalfLine,
               winLoss: winLoss,

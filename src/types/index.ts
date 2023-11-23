@@ -104,12 +104,17 @@ export interface SportspageGame {
 
 export interface TeamsPageProps {
   teams: TeamWithGames[];
-  dbGames: Game[];
+  dbGames: ExtendedGame[];
 }
 
 export interface ExtendedTeam extends Team {
   awayGames: Game[] | SportspageGameData[];
   homeGames: Game[] | SportspageGameData[];
+}
+
+export interface ExtendedGame extends Game {
+  awayTeam: Team;
+  homeTeam: Team;
 }
 
 export interface TeamWithGames {

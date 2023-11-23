@@ -22,11 +22,15 @@ import {
   type TeamsPageProps,
   type SportspageGameFeed,
   type ExtendedTeam,
+  ExtendedGame,
 } from "~/types";
 import { db } from "~/server/db";
 import { type Game } from "@prisma/client";
 
-const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[] | ExtendedTeam[]) => {
+const getGamePredictions = (
+  game: SportspageGame,
+  teams: TeamWithGames[] | ExtendedTeam[],
+) => {
   const homeTeam = teams.find((t) => t.team === game.teams.home.team)!;
   const awayTeam = teams.find((t) => t.team === game.teams.away.team)!;
   let awayScore = 0,
@@ -101,9 +105,8 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[] | Exten
 
 export const getServerSideProps: GetServerSideProps<{
   teams: ExtendedTeam[];
-  dbGames: Game[];
+  dbGames: ExtendedGame[];
 }> = async () => {
-
   let teams: TeamWithGames[] | ExtendedTeam[] = [];
   let games;
 
@@ -178,6 +181,9 @@ export const getServerSideProps: GetServerSideProps<{
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    console.log("today", today);
+    console.log("tomorrow", tomorrow);
+
     games = await db.game.findMany({
       where: {
         AND: [
@@ -193,12 +199,18 @@ export const getServerSideProps: GetServerSideProps<{
           },
         ],
       },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
     });
   } catch (e) {
     console.error(e);
   } finally {
     await db.$disconnect();
   }
+
+  console.log("games", games);
 
   games = games?.map((game) => ({
     ...game,
@@ -210,14 +222,14 @@ export const getServerSideProps: GetServerSideProps<{
   return {
     props: {
       teams: (JSON.parse(JSON.stringify(teams)) as ExtendedTeam[]) ?? [],
-      dbGames: (JSON.parse(JSON.stringify(games)) as Game[]) ?? [],
+      dbGames: (JSON.parse(JSON.stringify(games)) as ExtendedGame[]) ?? [],
     },
   };
 };
 
 const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const games = dbGames;
+  const [games, setGames] = useState<ExtendedGame[]>(dbGames);
 
   const fetchGames = async () => {
     let skip = 0;
@@ -272,7 +284,50 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
     console.log("fetchGames results", results);
   };
 
+  const getGamesFromDb = async (date: string | number | Date) => {
+    try {
+      const today = new Date(date);
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const games = await db.game.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: today,
+              },
+            },
+            {
+              date: {
+                lt: tomorrow,
+              },
+            },
+          ],
+        },
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+        },
+      });
+
+      console.log("games", games);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      await db.$disconnect();
+    }
+
+    setGames(games);
+  }
+
   const handleDateChange = (date: Date | null) => {
+    if (!date) {
+      return;
+    }
+    getGamesFromDb(date);
+
     setSelectedDate(date);
   };
 
@@ -319,8 +374,6 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
                 <TableCell>Away Team</TableCell>
                 <TableCell>Home Team</TableCell>
                 <TableCell>Date</TableCell>
-                <TableCell>Away Average Score</TableCell>
-                <TableCell>Home Average Score</TableCell>
                 <TableCell>Predicted Score</TableCell>
                 <TableCell>Estimated Half Line</TableCell>
                 <TableCell>Away Periods</TableCell>
@@ -330,32 +383,26 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {/* {games?.map((game, index) => {
+              {games?.map((game, index) => {
                 return (
                   <TableRow key={index}>
                     <TableCell>{game.awayTeam?.team}</TableCell>
                     <TableCell>{game.homeTeam?.team}</TableCell>
                     <TableCell>
-                      {new Date(game.schedule.date).toLocaleString("en-US", {
+                      {new Date(game.date).toLocaleString("en-US", {
                         timeZone: "America/Chicago",
                       })}
                     </TableCell>
-                    <TableCell>{game.awayScore}</TableCell>
-                    <TableCell>{game.homeScore}</TableCell>
-                    <TableCell>{game.predictedScore}</TableCell>
+                    <TableCell>{game.predictedHalfScore}</TableCell>
 
-                    <TableCell>{game.predictedHalfLine ?? " "}</TableCell>
-                    <TableCell>
-                      {game.scoreboard?.score.awayPeriods[0]}
-                    </TableCell>
-                    <TableCell>
-                      {game.scoreboard?.score.homePeriods[0]}
-                    </TableCell>
-                    <TableCell>{game.halfTimeScore}</TableCell>
+                    <TableCell>{game.estimatedHalfLine ?? " "}</TableCell>
+                    <TableCell>{game.awayPeriods[0]}</TableCell>
+                    <TableCell>{game.homePeriods[0]}</TableCell>
+                    <TableCell>{game.actualHalfScore}</TableCell>
                     <TableCell>{game.winLoss}</TableCell>
                   </TableRow>
                 );
-              })} */}
+              })}
             </TableBody>
           </Table>
         </TableContainer>
