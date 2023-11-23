@@ -1,7 +1,7 @@
-import { type TeamWithGames } from "~/types";
+import { type TeamWithGames, type ExtendedTeam } from "~/types";
 
 export const getAverageFirstHalfScore = (
-  team: TeamWithGames,
+  team: ExtendedTeam,
   homeOrAway: "home" | "away",
   scoresOrAllow: "scores" | "allow",
 ) => {

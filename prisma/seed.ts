@@ -1,5 +1,5 @@
 import axios from "axios";
-import { SportspageGameFeed } from "~/types";
+import { ExtendedTeam, SportspageGameFeed } from "~/types";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
 import { db } from "~/server/db";
 
@@ -49,10 +49,10 @@ export async function seedGames() {
           include: { awayGames: true, homeGames: true },
         });
       }
-      let homeTeam = await db.team.findUnique({
+      let homeTeam = (await db.team.findUnique({
         where: { team: game.teams.home.team, mascot: game.teams.home.mascot },
         include: { homeGames: true, awayGames: true },
-      });
+      }))
       if (!homeTeam) {
         homeTeam = await db.team.create({
           data: {

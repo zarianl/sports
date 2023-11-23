@@ -21,11 +21,12 @@ import {
   type SportspageGame,
   type TeamsPageProps,
   type SportspageGameFeed,
+  ExtendedTeam,
 } from "~/types";
 import { db } from "~/server/db";
 import { type Game } from "@prisma/client";
 
-const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
+const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[] | ExtendedTeam[]) => {
   const homeTeam = teams.find((t) => t.team === game.teams.home.team)!;
   const awayTeam = teams.find((t) => t.team === game.teams.away.team)!;
   let awayScore = 0,
@@ -34,15 +35,15 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
   if (homeTeam && awayTeam) {
     awayScore =
       Math.round(
-        ((getAverageFirstHalfScore(homeTeam, "home", "scores") +
-          getAverageFirstHalfScore(awayTeam, "away", "allow")) /
+        ((getAverageFirstHalfScore(homeTeam as ExtendedTeam, "home", "scores") +
+          getAverageFirstHalfScore(awayTeam as ExtendedTeam, "away", "allow")) /
           2) *
           10,
       ) / 10;
     homeScore =
       Math.round(
-        ((getAverageFirstHalfScore(homeTeam, "away", "scores") +
-          getAverageFirstHalfScore(awayTeam, "home", "allow")) /
+        ((getAverageFirstHalfScore(homeTeam as ExtendedTeam, "away", "scores") +
+          getAverageFirstHalfScore(awayTeam as ExtendedTeam, "home", "allow")) /
           2) *
           10,
       ) / 10;
@@ -99,10 +100,11 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
 };
 
 export const getServerSideProps: GetServerSideProps<{
-  teams: TeamWithGames[];
+  teams: ExtendedTeam[];
   dbGames: Game[];
 }> = async () => {
-  let teams: TeamWithGames[] | [] = [];
+
+  let teams: TeamWithGames[] | ExtendedTeam[] = [];
   let games;
 
   try {
@@ -130,21 +132,45 @@ export const getServerSideProps: GetServerSideProps<{
 
   teams = teams.map((team) => ({
     ...team,
-    createdAt: new Date(team.createdAt.toISOString()),
-    updatedAt: new Date(team.updatedAt.toISOString()),
+    createdAt: (team.createdAt instanceof Date
+      ? team.createdAt
+      : new Date(team.createdAt)
+    ).toISOString(),
+    updatedAt: (team.updatedAt instanceof Date
+      ? team.updatedAt
+      : new Date(team.updatedAt)
+    ).toISOString(),
     awayGames: team.awayGames.map((game) => ({
       ...game,
-      date: new Date(game.date.toISOString()),
-      createdAt: new Date(game.createdAt.toISOString()),
-      updatedAt: new Date(game.updatedAt.toISOString()),
+      date: (game.date instanceof Date
+        ? game.date
+        : new Date(game.date)
+      ).toISOString(),
+      createdAt: (game.createdAt instanceof Date
+        ? game.createdAt
+        : new Date(game.createdAt)
+      ).toISOString(),
+      updatedAt: (game.updatedAt instanceof Date
+        ? game.updatedAt
+        : new Date(game.updatedAt)
+      ).toISOString(),
     })),
     homeGames: team.homeGames.map((game) => ({
       ...game,
-      date: new Date(game.date.toISOString()),
-      createdAt: new Date(game.createdAt.toISOString()),
-      updatedAt: new Date(game.updatedAt.toISOString()),
+      date: (game.date instanceof Date
+        ? game.date
+        : new Date(game.date)
+      ).toISOString(),
+      createdAt: (game.createdAt instanceof Date
+        ? game.createdAt
+        : new Date(game.createdAt)
+      ).toISOString(),
+      updatedAt: (game.updatedAt instanceof Date
+        ? game.updatedAt
+        : new Date(game.updatedAt)
+      ).toISOString(),
     })),
-  }));
+  })) as TeamWithGames[];
 
   try {
     const today = new Date();
@@ -174,10 +200,17 @@ export const getServerSideProps: GetServerSideProps<{
     await db.$disconnect();
   }
 
+  games = games?.map((game) => ({
+    ...game,
+    date: game.date.toISOString(),
+    createdAt: game.createdAt.toISOString(),
+    updatedAt: game.updatedAt.toISOString(),
+  }));
+
   return {
     props: {
-      teams: teams ?? [],
-      dbGames: games ?? [],
+      teams: JSON.parse(JSON.stringify(teams)) ?? [],
+      dbGames: JSON.parse(JSON.stringify(games)) ?? [],
     },
   };
 };
@@ -214,15 +247,18 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
       console.log("fetchGames responseGames", responseGames);
 
       if (responseGames.length > 0) {
-        const sortedGames = responseGames.sort((a: SportspageGame, b: SportspageGame) =>
-          a.teams.away.team.localeCompare(b.teams.away.team)
+        const sortedGames = responseGames.sort(
+          (a: SportspageGame, b: SportspageGame) =>
+            a.teams.away.team.localeCompare(b.teams.away.team),
         );
-        const predictedGames = sortedGames.map((game: SportspageGame) => getGamePredictions(game, teams));
+        const predictedGames = sortedGames.map((game: SportspageGame) =>
+          getGamePredictions(game, teams),
+        );
         const validGames = predictedGames.filter(
           (game: SportspageGame | undefined): game is SportspageGame =>
             game !== undefined,
         );
-        
+
         results = [...results, ...validGames] as SportspageGame[];
         skip += 100;
         if (gamesCount < 100) {

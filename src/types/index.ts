@@ -1,6 +1,5 @@
 import { type Game, type Team } from "@prisma/client";
 
-
 export interface SportspageGameFeed {
   data: {
     status: number;
@@ -108,14 +107,10 @@ export interface TeamsPageProps {
   dbGames: Game[];
 }
 
-
 export interface ExtendedTeam extends Team {
-  awayGames: SportspageGameData[];
-  homeGames: SportspageGameData[];
+  awayGames: Game[] | SportspageGameData[];
+  homeGames: Game[] | SportspageGameData[];
 }
-
-
-
 
 export interface TeamWithGames {
   id: number;
@@ -126,18 +121,20 @@ export interface TeamWithGames {
   abbreviation?: string | null;
   awayGames: SportspageGameData[];
   homeGames: SportspageGameData[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
+
+
 
 export interface SportspageGameData {
   id: number;
   seasonType: string;
   awayPeriods: number[];
   homePeriods: number[];
-  date: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GameProps {
