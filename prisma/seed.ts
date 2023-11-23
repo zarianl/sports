@@ -27,7 +27,6 @@ export async function seedGames() {
     options.params.skip = skip;
     const sportsPageGames: SportspageGameFeed = await axios.request(options);
     results = sportsPageGames.data.results;
-    console.log("results", results);
 
     for (const game of results) {
       let awayTeam = await db.team.findUnique({
@@ -56,7 +55,6 @@ export async function seedGames() {
       }))
       if (!homeTeam) {
         if (!game.teams?.home?.team || !game.teams?.home?.mascot) return
-        console.log("game.teams.home", game.teams.home)
         homeTeam = await db.team.create({
           data: {
             team: game.teams.home.team,

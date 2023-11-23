@@ -23,6 +23,7 @@ import {
   type SportspageGameFeed,
   type ExtendedTeam,
   ExtendedGame,
+  GamesPageProps,
 } from "~/types";
 import { db } from "~/server/db";
 import { type Game } from "@prisma/client";
@@ -73,18 +74,6 @@ const getGamePredictions = (
         : "Win";
   }
 
-  console.log("getGamePredictions", {
-    homeTeam,
-    awayTeam,
-    awayScore,
-    homeScore,
-    predictedScore,
-    predictedHalfLine,
-    overUnder,
-    halfTimeScore,
-    winLoss,
-  });
-
   if (!homeTeam || !awayTeam || !awayScore || !homeScore || !predictedScore) {
     return;
   }
@@ -104,85 +93,80 @@ const getGamePredictions = (
 };
 
 export const getServerSideProps: GetServerSideProps<{
-  teams: ExtendedTeam[];
   dbGames: ExtendedGame[];
 }> = async () => {
-  let teams: TeamWithGames[] | ExtendedTeam[] = [];
   let games;
 
-  try {
-    teams = await db.team.findMany({
-      include: {
-        awayGames: true,
-        homeGames: true,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-  } finally {
-    await db.$disconnect();
-  }
+  // try {
+  //   teams = await db.team.findMany({
+  //     include: {
+  //       awayGames: true,
+  //       homeGames: true,
+  //     },
+  //   });
+  // } catch (e) {
+  //   console.error(e);
+  // } finally {
+  //   await db.$disconnect();
+  // }
 
-  // If teams is not defined, return default props
-  if (!teams) {
-    return {
-      props: {
-        teams: [],
-        dbGames: [],
-      },
-    };
-  }
+  // // If teams is not defined, return default props
+  // if (!teams) {
+  //   return {
+  //     props: {
+  //       teams: [],
+  //       dbGames: [],
+  //     },
+  //   };
+  // }
 
-  teams = teams.map((team) => ({
-    ...team,
-    createdAt: (team.createdAt instanceof Date
-      ? team.createdAt
-      : new Date(team.createdAt)
-    ).toISOString(),
-    updatedAt: (team.updatedAt instanceof Date
-      ? team.updatedAt
-      : new Date(team.updatedAt)
-    ).toISOString(),
-    awayGames: team.awayGames.map((game) => ({
-      ...game,
-      date: (game.date instanceof Date
-        ? game.date
-        : new Date(game.date)
-      ).toISOString(),
-      createdAt: (game.createdAt instanceof Date
-        ? game.createdAt
-        : new Date(game.createdAt)
-      ).toISOString(),
-      updatedAt: (game.updatedAt instanceof Date
-        ? game.updatedAt
-        : new Date(game.updatedAt)
-      ).toISOString(),
-    })),
-    homeGames: team.homeGames.map((game) => ({
-      ...game,
-      date: (game.date instanceof Date
-        ? game.date
-        : new Date(game.date)
-      ).toISOString(),
-      createdAt: (game.createdAt instanceof Date
-        ? game.createdAt
-        : new Date(game.createdAt)
-      ).toISOString(),
-      updatedAt: (game.updatedAt instanceof Date
-        ? game.updatedAt
-        : new Date(game.updatedAt)
-      ).toISOString(),
-    })),
-  })) as TeamWithGames[];
+  // teams = teams.map((team) => ({
+  //   ...team,
+  //   createdAt: (team.createdAt instanceof Date
+  //     ? team.createdAt
+  //     : new Date(team.createdAt)
+  //   ).toISOString(),
+  //   updatedAt: (team.updatedAt instanceof Date
+  //     ? team.updatedAt
+  //     : new Date(team.updatedAt)
+  //   ).toISOString(),
+  //   awayGames: team.awayGames.map((game) => ({
+  //     ...game,
+  //     date: (game.date instanceof Date
+  //       ? game.date
+  //       : new Date(game.date)
+  //     ).toISOString(),
+  //     createdAt: (game.createdAt instanceof Date
+  //       ? game.createdAt
+  //       : new Date(game.createdAt)
+  //     ).toISOString(),
+  //     updatedAt: (game.updatedAt instanceof Date
+  //       ? game.updatedAt
+  //       : new Date(game.updatedAt)
+  //     ).toISOString(),
+  //   })),
+  //   homeGames: team.homeGames.map((game) => ({
+  //     ...game,
+  //     date: (game.date instanceof Date
+  //       ? game.date
+  //       : new Date(game.date)
+  //     ).toISOString(),
+  //     createdAt: (game.createdAt instanceof Date
+  //       ? game.createdAt
+  //       : new Date(game.createdAt)
+  //     ).toISOString(),
+  //     updatedAt: (game.updatedAt instanceof Date
+  //       ? game.updatedAt
+  //       : new Date(game.updatedAt)
+  //     ).toISOString(),
+  //   })),
+  // })) as TeamWithGames[];
 
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-
-    console.log("today", today);
-    console.log("tomorrow", tomorrow);
 
     games = await db.game.findMany({
       where: {
@@ -199,9 +183,29 @@ export const getServerSideProps: GetServerSideProps<{
           },
         ],
       },
-      include: {
-        homeTeam: true,
-        awayTeam: true,
+      select: {
+        id: true,
+        date: true,
+        createdAt: true,
+        updatedAt: true,
+        homeTeam: {
+          select: {
+            id: true,
+            team: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            team: true,
+          },
+        },
+        awayPeriods: true,
+        homePeriods: true,
+        actualHalfScore: true,
+        predictedHalfScore: true,
+        estimatedHalfLine: true,
+        winLoss: true,
       },
     });
   } catch (e) {
@@ -209,8 +213,6 @@ export const getServerSideProps: GetServerSideProps<{
   } finally {
     await db.$disconnect();
   }
-
-  console.log("games", games);
 
   games = games?.map((game) => ({
     ...game,
@@ -221,77 +223,25 @@ export const getServerSideProps: GetServerSideProps<{
 
   return {
     props: {
-      teams: (JSON.parse(JSON.stringify(teams)) as ExtendedTeam[]) ?? [],
+      // teams: (JSON.parse(JSON.stringify(teams)) as ExtendedTeam[]) ?? [],
       dbGames: (JSON.parse(JSON.stringify(games)) as ExtendedGame[]) ?? [],
     },
   };
 };
 
-const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
+const GamesPage: React.FC<GamesPageProps> = ({ dbGames }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [games, setGames] = useState<ExtendedGame[]>(dbGames);
 
-  const fetchGames = async () => {
-    let skip = 0;
-    let results: SportspageGame[] = [];
-    let hasMore = true;
-
-    while (hasMore) {
-      const options = {
-        method: "GET",
-        url: "https://sportspage-feeds.p.rapidapi.com/games",
-        params: {
-          league: "NCAAB",
-          date: new Date().toISOString().split("T")[0],
-          skip: skip,
-        },
-        headers: {
-          "X-RapidAPI-Key":
-            "e535d42c74msha27d666909c4fc1p19240bjsne0308eef1af3",
-          "X-RapidAPI-Host": "sportspage-feeds.p.rapidapi.com",
-        },
-      };
-
-      const response: SportspageGameFeed = await axios.request(options);
-      const gamesCount: number = response.data.games;
-      const responseGames: SportspageGame[] = response.data.results;
-
-      console.log("fetchGames responseGames", responseGames);
-
-      if (responseGames.length > 0) {
-        const sortedGames = responseGames.sort(
-          (a: SportspageGame, b: SportspageGame) =>
-            a.teams.away.team.localeCompare(b.teams.away.team),
-        );
-        const predictedGames = sortedGames.map((game: SportspageGame) =>
-          getGamePredictions(game, teams),
-        );
-        const validGames = predictedGames.filter(
-          (game: SportspageGame | undefined): game is SportspageGame =>
-            game !== undefined,
-        );
-
-        results = [...results, ...validGames] as SportspageGame[];
-        skip += 100;
-        if (gamesCount < 100) {
-          hasMore = false;
-        }
-      } else {
-        hasMore = false;
-      }
-    }
-
-    console.log("fetchGames results", results);
-  };
-
   const getGamesFromDb = async (date: string | number | Date) => {
+    let games: ExtendedGame[] = [];
     try {
       const today = new Date(date);
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const games = await db.game.findMany({
+      games = await db.game.findMany({
         where: {
           AND: [
             {
@@ -311,8 +261,6 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
           awayTeam: true,
         },
       });
-
-      console.log("games", games);
     } catch (e) {
       console.error(e);
     } finally {
@@ -320,9 +268,9 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
     }
 
     setGames(games);
-  }
+  };
 
-  const handleDateChange = async(date: Date | null) => {
+  const handleDateChange = async (date: Date | null) => {
     if (!date) {
       return;
     }
@@ -361,9 +309,6 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
               : "N/A"}
             % */}
           </Typography>
-          <Button color="inherit" onClick={() => fetchGames()}>
-            {`Fetch Today's Games`}
-          </Button>
         </Toolbar>
       </AppBar>
       {Array.isArray(games) && games.length > 0 && (
