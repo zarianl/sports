@@ -322,11 +322,11 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
     setGames(games);
   }
 
-  const handleDateChange = (date: Date | null) => {
+  const handleDateChange = async(date: Date | null) => {
     if (!date) {
       return;
     }
-    getGamesFromDb(date);
+    await getGamesFromDb(date);
 
     setSelectedDate(date);
   };
