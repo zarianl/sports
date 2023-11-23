@@ -16,7 +16,11 @@ import { useState } from "react";
 import axios from "axios";
 import { type GetServerSideProps } from "next";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
-import { type TeamWithGames, type SportspageGame,type TeamsPageProps } from "~/types";
+import {
+  type TeamWithGames,
+  type SportspageGame,
+  type TeamsPageProps,
+} from "~/types";
 import { db } from "~/server/db";
 import { Game } from "@prisma/client";
 
@@ -179,9 +183,7 @@ export const getServerSideProps: GetServerSideProps<{
 
 const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-  const [games, setGames] = useState(dbGames);
-  const [wins, setWins] = useState(0);
-  const [loss, setLoss] = useState(0);
+  const games = dbGames;
 
   const fetchGames = async () => {
     let skip = 0;
