@@ -16,13 +16,7 @@ import { useState } from "react";
 import axios from "axios";
 import { type GetServerSideProps } from "next";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
-import {
-  TeamWithGames,
-  type SportspageGame,
-  type SportspageGameFeed,
-  TeamsPageProps,
-  SportspageGameData,
-} from "~/types";
+import { TeamWithGames, type SportspageGame, TeamsPageProps } from "~/types";
 import { db } from "~/server/db";
 import { Game } from "@prisma/client";
 
