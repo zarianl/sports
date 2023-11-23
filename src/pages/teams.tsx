@@ -22,12 +22,12 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { type SelectChangeEvent } from "@mui/material";
-import { ExtendedTeam } from "~/types";
+import { type ExtendedTeam } from "~/types";
 
 const prisma = new PrismaClient();
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  let teams: ExtendedTeam[] = await prisma.team.findMany({
+  const teams: ExtendedTeam[] = await prisma.team.findMany({
     include: { awayGames: true, homeGames: true },
   });
 
