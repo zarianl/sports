@@ -1,268 +1,332 @@
-import { Container, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
-import { useState, useEffect } from 'react';
-import { PrismaClient } from '@prisma/client';
-import axios, { type AxiosResponse } from 'axios';
-import { type GetServerSideProps } from 'next';
-import { type Game } from '@prisma/client';
-import { getAverageFirstHalfScore } from '~/utils/getAverageFirstHalfScore';
+import {
+  AppBar,
+  Button,
+  Container,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Toolbar,
+  Typography,
+} from "@mui/material";
+import { useState } from "react";
+import axios from "axios";
+import { type GetServerSideProps } from "next";
+import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
+import {
+  TeamWithGames,
+  type SportspageGame,
+  type SportspageGameFeed,
+  TeamsPageProps,
+  SportspageGameData,
+} from "~/types";
+import { db } from "~/server/db";
+import { Game } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
+  const homeTeam = teams.find((t) => t.team === game.teams.home.team)!;
+  const awayTeam = teams.find((t) => t.team === game.teams.away.team)!;
+  let awayScore = 0,
+    homeScore = 0,
+    predictedScore = 0;
+  if (homeTeam && awayTeam) {
+    awayScore =
+      Math.round(
+        ((getAverageFirstHalfScore(homeTeam, "home", "scores") +
+          getAverageFirstHalfScore(awayTeam, "away", "allow")) /
+          2) *
+          10,
+      ) / 10;
+    homeScore =
+      Math.round(
+        ((getAverageFirstHalfScore(homeTeam, "away", "scores") +
+          getAverageFirstHalfScore(awayTeam, "home", "allow")) /
+          2) *
+          10,
+      ) / 10;
 
+    predictedScore = Math.round((awayScore + homeScore) * 10) / 10;
+  }
+  const awayPeriodsScore = game.scoreboard?.score?.awayPeriods[0] ?? 0;
+  const homePeriodsScore = game.scoreboard?.score?.homePeriods[0] ?? 0;
+  const halfTimeScore = awayPeriodsScore + homePeriodsScore || null;
 
-interface TeamsPageProps {
-    teams: TeamWithGames[],
-    gamesProp: GameProps[]
-}
+  const predictedHalfLine = game.odds?.[0]
+    ? Math.round(game.odds[0].total.current.total * 0.46 * 2) / 2
+    : 0;
 
-interface TeamWithGames {
-    id: number;
-    team: string;
-    location: string;
-    conference: string;
-    division: string;
-    abbreviation?: string | null;
-    awayGames: GameWithoutTimestamps[];
-    homeGames: GameWithoutTimestamps[];
-}
+  const overUnder = predictedScore < predictedHalfLine ? "under" : "over";
+  let winLoss: string | null = null;
+  if (halfTimeScore !== null && game.status !== "in progress") {
+    winLoss =
+      (predictedScore < predictedHalfLine &&
+        halfTimeScore > predictedHalfLine) ||
+      (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine)
+        ? "Loss"
+        : "Win";
+  }
 
-interface GameWithoutTimestamps {
-    id: number;
-    seasonType: string;
-    awayPeriods: unknown;
-    homePeriods: unknown;
-}
+  console.log("getGamePredictions", {
+    homeTeam,
+    awayTeam,
+    awayScore,
+    homeScore,
+    predictedScore,
+    predictedHalfLine,
+    overUnder,
+    halfTimeScore,
+    winLoss,
+  });
 
-interface GameProps {
-    estimatedHalfLine: number;
-    predictedHalfLine: number | null;
-    actualHalfScore: number;
-    overUnder: number;
-    winLoss: string;
-}
+  if (!homeTeam || !awayTeam || !awayScore || !homeScore || !predictedScore) {
+    return;
+  }
 
-export const getServerSideProps: GetServerSideProps = async () => {
-    let teams: TeamWithGames[] = await prisma.team.findMany({
-        select: {
-            id: true,
-            team: true,
-            mascot: true,
-            location: true,
-            conference: true,
-            division: true,
-            league: true,
-            abbreviation: true,
-            awayGames: {
-                select: {
-                    id: true,
-                    seasonType: true,
-                    awayPeriods: true,
-                    homePeriods: true
-                },
-            },
-            homeGames: {
-                select: {
-                    id: true,
-                    seasonType: true,
-                    awayPeriods: true,
-                    homePeriods: true
-                },
-            },
-        },
-    });
-    teams = teams.map(team => ({
-        id: team.id,
-        team: team.team,
-        location: team.location,
-        conference: team.conference,
-        division: team.division,
-        abbreviation: team.abbreviation,
-        awayGames: team.awayGames.map(game => ({
-            id: game.id,
-            seasonType: game.seasonType,
-            awayPeriods: game.awayPeriods,
-            homePeriods: game.homePeriods,
-        })),
-        homeGames: team.homeGames.map(game => ({
-            id: game.id,
-            seasonType: game.seasonType,
-            awayPeriods: game.awayPeriods,
-            homePeriods: game.homePeriods,
-        })),
-    }));
-
-    let games = await prisma.game.findMany();
-
-    games = games.map((game: Game) => ({
-        ...game,
-        id: game.id,
-        date: new Date(game.date).toISOString(),
-        createdAt: new Date(game.createdAt).toISOString(),
-        updatedAt: new Date(game.updatedAt).toISOString(),
-        gameId: game.gameId,
-        estimatedHalfLine: game.estimatedHalfLine,
-        predictedHalfLine: game.predictedHalfScore ? game.predictedHalfScore : null,
-        actualHalfScore: game.actualHalfScore,
-        overUnder: game.overUnder,
-        winLoss: game.winLoss,
-    }));
-
-    return {
-        props: {
-            teams,
-            gamesProp: games
-        },
-    };
+  return {
+    ...game,
+    homeTeam,
+    awayTeam,
+    awayScore: awayScore ? awayScore : 0,
+    homeScore: homeScore ? homeScore : 0,
+    predictedScore: predictedScore,
+    predictedHalfLine: predictedHalfLine,
+    overUnder: overUnder ? overUnder : "",
+    halfTimeScore,
+    winLoss,
+  };
 };
 
-const GamesPage: React.FC<TeamsPageProps> = ({ teams, gamesProp }) => {
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-    const [games, setGames] = useState<Game[]>([]);
-    const [wins, setWins] = useState(0)
-    const [loss, setLoss] = useState(0)
+export const getServerSideProps: GetServerSideProps<{
+  teams: TeamWithGames[];
+  dbGames: Game[];
+}> = async () => {
+  let teams: TeamWithGames[] | [] = [];
+  let games;
 
-    useEffect(() => {
-        const winGames = gamesProp.filter(game => game.winLoss === "Win");
-        setWins(winGames.length);
-        const lossGames = gamesProp.filter(game => game.winLoss === "Loss");
-        setLoss(lossGames.length);
-    }, [gamesProp]);
+  try {
+    teams = await db.team.findMany({
+      include: {
+        awayGames: true,
+        homeGames: true,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await db.$disconnect();
+  }
 
-    useEffect(() => {
-        if (selectedDate) {
-            const options = {
-                method: 'GET',
-                url: 'https://sportspage-feeds.p.rapidapi.com/games',
-                params: {
-                    league: 'NCAAB',
-                    date: selectedDate.toISOString().split('T')[0]
-                },
-                headers: {
-                    'X-RapidAPI-Key': 'e535d42c74msha27d666909c4fc1p19240bjsne0308eef1af3',
-                    'X-RapidAPI-Host': 'sportspage-feeds.p.rapidapi.com'
-                }
-            };
-
-            axios.request(options).then((response: AxiosResponse) => {
-                console.log('response', response.data.results)
-                const responseGames: Game[] = response.data.results.map((game: any) => ({
-                    teams: {
-                        away: {
-                            team: game.teams.away.team
-                        },
-                        home: {
-                            team: game.teams.home.team
-                        }
-                    },
-                    schedule: {
-                        date: game.schedule.date
-                    },
-                    ...(game.odds && game.odds.length > 0 ? {
-                        odds: {
-                            current: game.odds[0].total.current.total,
-                            open: game.odds[0].total.open.total
-                        }
-                    } : {}),
-                    scoreboard: game.scoreboard
-                }))
-                setGames(responseGames);
-            }).catch((error) => {
-                console.error(error);
-            });
-        }
-    }, [selectedDate]);
-
-    const handleDateChange = (date: Date | null) => {
-        setSelectedDate(date);
+  // If teams is not defined, return default props
+  if (!teams) {
+    return {
+      props: {
+        teams: [],
+        dbGames: [],
+      },
     };
+  }
 
+  teams = teams.map((team) => ({
+    ...team,
+    createdAt: new Date(team.createdAt.toISOString()),
+    updatedAt: new Date(team.updatedAt.toISOString()),
+    awayGames: team.awayGames.map((game) => ({
+      ...game,
+      date: new Date(game.date.toISOString()),
+      createdAt: new Date(game.createdAt.toISOString()),
+      updatedAt: new Date(game.updatedAt.toISOString()),
+    })),
+    homeGames: team.homeGames.map((game) => ({
+      ...game,
+      date: new Date(game.date.toISOString()),
+      createdAt: new Date(game.createdAt.toISOString()),
+      updatedAt: new Date(game.updatedAt.toISOString()),
+    })),
+  }));
 
-    return (
-        <Container>
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    games = await db.game.findMany({
+      where: {
+        AND: [
+          {
+            date: {
+              gte: today,
+            },
+          },
+          {
+            date: {
+              lt: tomorrow,
+            },
+          },
+        ],
+      },
+    });
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await db.$disconnect();
+  }
+
+  return {
+    props: {
+      teams: teams || [],
+      dbGames: games || [],
+    },
+  };
+};
+
+const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [games, setGames] = useState(dbGames);
+  const [wins, setWins] = useState(0);
+  const [loss, setLoss] = useState(0);
+
+  const fetchGames = async () => {
+    let skip = 0;
+    let results: SportspageGame[] = [];
+    let hasMore = true;
+
+    while (hasMore) {
+      const options = {
+        method: "GET",
+        url: "https://sportspage-feeds.p.rapidapi.com/games",
+        params: {
+          league: "NCAAB",
+          date: new Date().toISOString().split("T")[0],
+          skip: skip,
+        },
+        headers: {
+          "X-RapidAPI-Key":
+            "e535d42c74msha27d666909c4fc1p19240bjsne0308eef1af3",
+          "X-RapidAPI-Host": "sportspage-feeds.p.rapidapi.com",
+        },
+      };
+
+      const response = await axios.request(options);
+      const gamesCount = response.data.games;
+      const responseGames = response.data.results;
+
+      console.log("fetchGames responseGames", responseGames);
+
+      if (responseGames.length > 0) {
+        results = results.concat(
+          responseGames
+            .sort((a: SportspageGame, b: SportspageGame) =>
+              a.teams.away.team.localeCompare(b.teams.away.team),
+            )
+            .map((game: SportspageGame) => getGamePredictions(game, teams))
+            .filter((game: SportspageGame) => game !== undefined),
+        );
+        skip += 100;
+        if (gamesCount < 100) {
+          hasMore = false;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    console.log("fetchGames results", results);
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    setSelectedDate(date);
+  };
+
+  return (
+    <Container>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
             <TextField
-                id="date"
-                label="Game Date"
-                type="date"
-                defaultValue={selectedDate}
-                onChange={(event) => handleDateChange(new Date(event.target.value))}
-                InputLabelProps={{
-                    shrink: true,
-                }}
+              id="date"
+              label="Game Date"
+              type="date"
+              defaultValue={selectedDate}
+              onChange={(event) =>
+                handleDateChange(new Date(event.target.value))
+              }
+              InputLabelProps={{
+                shrink: true,
+              }}
             />
-            Wins: {wins}
+            {/* Wins: {wins}
             Losses: {loss}
-            Win Rate: {((loss / wins) * 100).toFixed(2)}%
-            {Array.isArray(games) && games.length > 0 && (
-                <TableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Away Team</TableCell>
-                                <TableCell>Home Team</TableCell>
-                                <TableCell>Date</TableCell>
-                                <TableCell>Away Average Score</TableCell>
-                                <TableCell>Home Average Score</TableCell>
-                                <TableCell>Predicted Score</TableCell>
-                                <TableCell>Estimated Half Line</TableCell>
-                                <TableCell>Away Periods</TableCell>
-                                <TableCell>Home Periods</TableCell>
-                                <TableCell>Actual Half Score</TableCell>
-                                <TableCell>Win/Loss</TableCell>
-                                <TableCell>Dif</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {games.sort((a, b) => a.teams.away.team.localeCompare(b.teams.away.team)).map((game, index) => {
-                                const homeTeam = teams.find(t => t.team === game.teams.home.team);
-                                const awayTeam = teams.find(t => t.team === game.teams.away.team);
+            Win Rate: {wins && loss ? ((loss / wins) * 100).toFixed(2) : "N/A"}%
+            Today's Win Rate:{" "}
+            {games && games.length > 0
+              ? (
+                  (games.filter((game: any) => game.winLoss === "Win").length /
+                    games.filter((game: any) => game.winLoss !== null).length) *
+                  100
+                ).toFixed(2)
+              : "N/A"}
+            % */}
+          </Typography>
+          <Button color="inherit" onClick={() => fetchGames()}>
+            Fetch Today's Games
+          </Button>
+        </Toolbar>
+      </AppBar>
+      {Array.isArray(games) && games.length > 0 && (
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Away Team</TableCell>
+                <TableCell>Home Team</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Away Average Score</TableCell>
+                <TableCell>Home Average Score</TableCell>
+                <TableCell>Predicted Score</TableCell>
+                <TableCell>Estimated Half Line</TableCell>
+                <TableCell>Away Periods</TableCell>
+                <TableCell>Home Periods</TableCell>
+                <TableCell>Actual Half Score</TableCell>
+                <TableCell>Win/Loss</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {/* {games?.map((game, index) => {
+                return (
+                  <TableRow key={index}>
+                    <TableCell>{game.awayTeam?.team}</TableCell>
+                    <TableCell>{game.homeTeam?.team}</TableCell>
+                    <TableCell>
+                      {new Date(game.schedule.date).toLocaleString("en-US", {
+                        timeZone: "America/Chicago",
+                      })}
+                    </TableCell>
+                    <TableCell>{game.awayScore}</TableCell>
+                    <TableCell>{game.homeScore}</TableCell>
+                    <TableCell>{game.predictedScore}</TableCell>
 
-                                let awayScore, homeScore, predictedScore = 0;
-                                if (homeTeam && awayTeam) {
-                                    awayScore = Math.round((
-                                        getAverageFirstHalfScore(homeTeam, 'home', 'scores') +
-                                        getAverageFirstHalfScore(awayTeam, 'away', 'allow')
-                                    ) / 2 * 10) / 10;
-                                    homeScore = Math.round((
-                                        getAverageFirstHalfScore(homeTeam, 'away', 'scores') +
-                                        getAverageFirstHalfScore(awayTeam, 'home', 'allow')
-                                    ) / 2 * 10) / 10
-                                    predictedScore = Math.round(((awayScore + homeScore)) * 10) / 10
-                                }
-                                console.log('Game', game)
-                                let halfTimeScore = 0
-                                const awayPeriodsScore = game.scoreboard?.score?.awayPeriods[0]
-                                const homePeriodsScore = game.scoreboard?.score?.homePeriods[0]
-                                halfTimeScore = awayPeriodsScore + homePeriodsScore
-                                const predictedHalfLine = game.odds && game.odds.open ? Math.round(game.odds.open * 0.47 * 2) / 2 : null;
-                                const overUnder = predictedScore < predictedHalfLine ? 'under' : 'over';
-                                const winLoss = (predictedScore < predictedHalfLine && halfTimeScore > predictedHalfLine) || (predictedScore > predictedHalfLine && halfTimeScore < predictedHalfLine) ? 'Loss' : 'Win';
-                                const dif = Math.round(Math.abs(predictedScore - predictedHalfLine))
-                                if(!awayScore || !homeScore) return
-                                const tableRowClass = `bg-${overUnder === 'under' ? 'red' : 'green'}-${Math.min(dif, 9) * 100}`;
-                                return (
-                                    <TableRow key={index} className={tableRowClass } >
-                                        <TableCell>{game.teams.away.team}</TableCell>
-                                        <TableCell>{game.teams.home.team}</TableCell>
-                                        <TableCell>{new Date(game.schedule.date).toLocaleDateString()}</TableCell>
-                                        <TableCell>{awayScore}</TableCell>
-                                        <TableCell>{homeScore}</TableCell>
-                                        <TableCell>{predictedScore}</TableCell>
-
-
-                                        <TableCell>{predictedHalfLine ?? " "}</TableCell>
-                                        <TableCell>{game.scoreboard?.score.awayPeriods[0]}</TableCell>
-                                        <TableCell>{game.scoreboard?.score.homePeriods[0]}</TableCell>
-                                        <TableCell>{halfTimeScore}</TableCell>
-                                        <TableCell>{winLoss}</TableCell>
-                                        <TableCell>{dif}</TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
-        </Container>
-    );
+                    <TableCell>{game.predictedHalfLine ?? " "}</TableCell>
+                    <TableCell>
+                      {game.scoreboard?.score.awayPeriods[0]}
+                    </TableCell>
+                    <TableCell>
+                      {game.scoreboard?.score.homePeriods[0]}
+                    </TableCell>
+                    <TableCell>{game.halfTimeScore}</TableCell>
+                    <TableCell>{game.winLoss}</TableCell>
+                  </TableRow>
+                );
+              })} */}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+    </Container>
+  );
 };
 
 export default GamesPage;

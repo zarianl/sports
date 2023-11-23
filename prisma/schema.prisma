@@ -25,30 +25,24 @@ model Team {
     mascot       String
     location     String
     conference   String
-    division     String
+    division     String?
     league       String?
     abbreviation String?
     createdAt    DateTime @default(now())
     updatedAt    DateTime @updatedAt
     awayGames    Game[]   @relation("AwayTeam")
     homeGames    Game[]   @relation("HomeTeam")
-
     @@index([team])
 }
 
 model Game {
-    id         Int      @id @default(autoincrement())
-    date       DateTime
-    seasonType String
-    season     Int
-    gameId     Int      @unique
-    conferenceGame     Boolean
-    divisionGame       Boolean
-    neutralSite        Boolean
+    id                 Int      @id @default(autoincrement())
+    date               DateTime
+    seasonType         String
+    season             Int
+    gameId             Int      @unique
     awayTeamId         Int
     homeTeamId         Int
-    awayPeriods        Json
-    homePeriods        Json
     awayTeam           Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
     homeTeam           Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
     createdAt          DateTime @default(now())
@@ -58,4 +52,7 @@ model Game {
     estimatedHalfLine  Float?
     overUnder          String?
     winLoss            String?
+    gameData           Json?
+    homePeriods        Int[]    @default([])
+    awayPeriods        Int[]    @default([])
 }

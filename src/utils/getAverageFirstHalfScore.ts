@@ -1,42 +1,5 @@
-interface Game {
-    teams: {
-        away: {
-            team: string
-        },
-        home: {
-            team: string
-        }
-    }
-    schedule: {
-        date: string
-    }
-    odds: {
-        open: number,
-        current: number
-    }
-}
+import { TeamWithGames } from "~/types";
 
-interface TeamsPageProps {
-    teams: TeamWithGames[]
-}
-
-interface TeamWithGames {
-    id: number;
-    team: string;
-    location: string;
-    conference: string;
-    division: string;
-    abbreviation: string | null;
-    awayGames: GameWithoutTimestamps[];
-    homeGames: GameWithoutTimestamps[];
-}
-
-interface GameWithoutTimestamps {
-    id: number;
-    seasonType: string;
-    awayPeriods: unknown;
-    homePeriods: unknown;
-}
 export const getAverageFirstHalfScore = (team: TeamWithGames, homeOrAway: 'home' | 'away', scoresOrAllow: 'scores' | 'allow') => {
     let totalScore = 0;
     let totalGames = 0;

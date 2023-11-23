@@ -2,7 +2,7 @@ name: Daily Seed Games
 
 on:
   schedule:
-    - cron: '0 0 * * *' # This will run the job every day at midnight
+    - cron: '0 9 * * *' # This will run the job every day at 3am CST
 
 jobs:
   seedGames:

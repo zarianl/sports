@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Game" ALTER COLUMN "awayPeriods" SET DEFAULT ARRAY[]::INTEGER[],
+ALTER COLUMN "homePeriods" SET DEFAULT ARRAY[]::INTEGER[];
