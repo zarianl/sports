@@ -20,10 +20,10 @@ import {
   type TeamWithGames,
   type SportspageGame,
   type TeamsPageProps,
-  SportspageGameFeed,
+  type SportspageGameFeed,
 } from "~/types";
 import { db } from "~/server/db";
-import { Game } from "@prisma/client";
+import { type Game } from "@prisma/client";
 
 const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
   const homeTeam = teams.find((t) => t.team === game.teams.home.team)!;
@@ -271,7 +271,7 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
             % */}
           </Typography>
           <Button color="inherit" onClick={() => fetchGames()}>
-            Fetch Today's Games
+            {`Fetch Today's Games`}
           </Button>
         </Toolbar>
       </AppBar>
