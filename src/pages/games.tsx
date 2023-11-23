@@ -16,7 +16,7 @@ import { useState } from "react";
 import axios from "axios";
 import { type GetServerSideProps } from "next";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
-import { TeamWithGames, type SportspageGame, TeamsPageProps } from "~/types";
+import { type TeamWithGames, type SportspageGame,type TeamsPageProps } from "~/types";
 import { db } from "~/server/db";
 import { Game } from "@prisma/client";
 
@@ -46,7 +46,7 @@ const getGamePredictions = (game: SportspageGame, teams: TeamWithGames[]) => {
   }
   const awayPeriodsScore = game.scoreboard?.score?.awayPeriods[0] ?? 0;
   const homePeriodsScore = game.scoreboard?.score?.homePeriods[0] ?? 0;
-  const halfTimeScore = awayPeriodsScore + homePeriodsScore || null;
+  const halfTimeScore = awayPeriodsScore + homePeriodsScore ?? null;
 
   const predictedHalfLine = game.odds?.[0]
     ? Math.round(game.odds[0].total.current.total * 0.46 * 2) / 2
@@ -171,8 +171,8 @@ export const getServerSideProps: GetServerSideProps<{
 
   return {
     props: {
-      teams: teams || [],
-      dbGames: games || [],
+      teams: teams ?? [],
+      dbGames: games ?? [],
     },
   };
 };
