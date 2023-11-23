@@ -1,5 +1,4 @@
-import { Game } from "@prisma/client";
-import { Team } from "@prisma/client";
+import { type Game, type Team } from "@prisma/client";
 
 
 export interface SportspageGameFeed {
