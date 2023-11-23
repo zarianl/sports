@@ -1,4 +1,6 @@
 import { Game } from "@prisma/client";
+import { Team } from "@prisma/client";
+
 
 export interface SportspageGameFeed {
   data: {
@@ -106,6 +108,15 @@ export interface TeamsPageProps {
   teams: TeamWithGames[];
   dbGames: Game[];
 }
+
+
+export interface ExtendedTeam extends Team {
+  awayGames: SportspageGameData[];
+  homeGames: SportspageGameData[];
+}
+
+
+
 
 export interface TeamWithGames {
   id: number;
