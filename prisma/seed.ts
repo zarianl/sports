@@ -9,7 +9,7 @@ const options = {
   params: {
     odds: "total",
     league: "NCAAB",
-    date: `2023-02-02,2023-12-31`,
+    date: `2023-11-06,2023-12-31`,
     skip: 0,
   },
   headers: {
@@ -23,7 +23,7 @@ export async function seedGames() {
   let skip = 0;
   let results = [];
   do {
-    options.params.date = new Date().toISOString().split('T')[0]!
+    // options.params.date = new Date().toISOString().split('T')[0]!
     options.params.skip = skip;
     const sportsPageGames: SportspageGameFeed = await axios.request(options);
     results = sportsPageGames.data.results;
@@ -55,7 +55,7 @@ export async function seedGames() {
         include: { homeGames: true, awayGames: true },
       }))
       if (!homeTeam) {
-        if (!game.teams.home.team || !game.teams.home.mascot) return
+        if (!game.teams?.home?.team || !game.teams?.home?.mascot) return
         homeTeam = await db.team.create({
           data: {
             team: game.teams.home.team,

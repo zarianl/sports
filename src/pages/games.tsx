@@ -21,7 +21,7 @@ import {
   type SportspageGame,
   type TeamsPageProps,
   type SportspageGameFeed,
-  ExtendedTeam,
+  type ExtendedTeam,
 } from "~/types";
 import { db } from "~/server/db";
 import { type Game } from "@prisma/client";
