@@ -209,8 +209,8 @@ export const getServerSideProps: GetServerSideProps<{
 
   return {
     props: {
-      teams: JSON.parse(JSON.stringify(teams)) ?? [],
-      dbGames: JSON.parse(JSON.stringify(games)) ?? [],
+      teams: (JSON.parse(JSON.stringify(teams)) as ExtendedTeam[]) ?? [],
+      dbGames: (JSON.parse(JSON.stringify(games)) as Game[]) ?? [],
     },
   };
 };
