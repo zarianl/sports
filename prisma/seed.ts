@@ -23,7 +23,7 @@ export async function seedGames() {
   let skip = 0;
   let results = [];
   do {
-    // options.params.date = new Date().toISOString().split('T')[0]!
+    options.params.date = new Date().toISOString().split('T')[0]!
     options.params.skip = skip;
     const sportsPageGames: SportspageGameFeed = await axios.request(options);
     results = sportsPageGames.data.results;
