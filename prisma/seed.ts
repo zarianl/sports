@@ -9,7 +9,7 @@ const options = {
   params: {
     odds: "total",
     league: "NCAAB",
-    date: `2022-12-19,2023-12-31`,
+    date: `2023-02-02,2023-12-31`,
     skip: 0,
   },
   headers: {

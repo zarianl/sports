@@ -20,6 +20,7 @@ import {
   type TeamWithGames,
   type SportspageGame,
   type TeamsPageProps,
+  SportspageGameFeed,
 } from "~/types";
 import { db } from "~/server/db";
 import { Game } from "@prisma/client";
@@ -206,21 +207,23 @@ const GamesPage: React.FC<TeamsPageProps> = ({ teams, dbGames }) => {
         },
       };
 
-      const response = await axios.request(options);
-      const gamesCount = response.data.games;
-      const responseGames = response.data.results;
+      const response: SportspageGameFeed = await axios.request(options);
+      const gamesCount: number = response.data.games;
+      const responseGames: SportspageGame[] = response.data.results;
 
       console.log("fetchGames responseGames", responseGames);
 
       if (responseGames.length > 0) {
-        results = results.concat(
-          responseGames
-            .sort((a: SportspageGame, b: SportspageGame) =>
-              a.teams.away.team.localeCompare(b.teams.away.team),
-            )
-            .map((game: SportspageGame) => getGamePredictions(game, teams))
-            .filter((game: SportspageGame) => game !== undefined),
+        const sortedGames = responseGames.sort((a: SportspageGame, b: SportspageGame) =>
+          a.teams.away.team.localeCompare(b.teams.away.team)
         );
+        const predictedGames = sortedGames.map((game: SportspageGame) => getGamePredictions(game, teams));
+        const validGames = predictedGames.filter(
+          (game: SportspageGame | undefined): game is SportspageGame =>
+            game !== undefined,
+        );
+        
+        results = [...results, ...validGames] as SportspageGame[];
         skip += 100;
         if (gamesCount < 100) {
           hasMore = false;
