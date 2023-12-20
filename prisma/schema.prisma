@@ -24,7 +24,7 @@ model Team {
     team         String   @unique
     mascot       String
     location     String
-    conference   String
+    conference   String?
     division     String?
     league       String?
     abbreviation String?

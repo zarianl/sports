@@ -7,9 +7,8 @@ const options = {
   method: "GET",
   url: "https://sportspage-feeds.p.rapidapi.com/games",
   params: {
-    odds: "total",
     league: "NCAAB",
-    date: `2023-11-06,2023-12-31`,
+    date: `2023-11-24,2023-12-19`,
     skip: 0,
   },
   headers: {
@@ -19,38 +18,37 @@ const options = {
 };
 
 export async function seedGames() {
-  // await db.game.deleteMany({});
   let skip = 0;
   let results = [];
   do {
-    options.params.date = new Date().toISOString().split('T')[0]!
+    //options.params.date = new Date().toISOString().split('T')[0]!
     options.params.skip = skip;
     const sportsPageGames: SportspageGameFeed = await axios.request(options);
     results = sportsPageGames.data.results;
+    console.log(`Seeding ${results.length} games`);
 
     for (const game of results) {
       let awayTeam = await db.team.findUnique({
         where: {
           team: game.teams.away.team,
-          mascot: game.teams.away.mascot,
         },
         include: { awayGames: true, homeGames: true },
       });
       if (!awayTeam) {
-        if (!game.teams.away.team || !game.teams.away.mascot) return
+        if (!game?.teams?.away?.team || !game?.teams?.away?.mascot) return
         awayTeam = await db.team.create({
           data: {
             team: game.teams.away.team,
             mascot: game.teams.away.mascot,
             location: game.teams.away.location,
-            conference: game.teams.away.conference,
+            conference: game.teams.away.conference || undefined,
             division: game.teams.away?.division || null,
           },
           include: { awayGames: true, homeGames: true },
         });
       }
       let homeTeam = (await db.team.findUnique({
-        where: { team: game.teams.home.team, mascot: game.teams.home.mascot },
+        where: { team: game.teams.home.team },
         include: { homeGames: true, awayGames: true },
       }))
       if (!homeTeam) {
@@ -60,7 +58,7 @@ export async function seedGames() {
             team: game.teams.home.team,
             mascot: game.teams.home.mascot,
             location: game.teams.home.location,
-            conference: game.teams.home.conference,
+            conference: game.teams.home.conference || undefined,
             division: game.teams.home?.division || null,
           },
           include: { awayGames: true, homeGames: true },
@@ -156,7 +154,7 @@ export async function seedGames() {
       }
     }
     skip += 100;
-  } while (results.length > 0 && skip < 2000);
+  } while (results.length > 0 && skip < 600000);
 }
 
 seedGames()
