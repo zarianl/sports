@@ -7,7 +7,7 @@ export const gameRouter = createTRPCRouter({
     try {
       const today = new Date(input);
       console.log(today);
-      today.setHours(0, 0, 0, 0);
+      // today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       const games = ctx.db.game.findMany({

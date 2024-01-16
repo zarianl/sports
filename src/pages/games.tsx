@@ -16,7 +16,6 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import { Game, Team } from "@prisma/client";
 import {  useState } from "react";
 import type { ExtendedGame, ExtendedTeam, GamesPageProps } from "~/types";
 import { api } from "~/utils/api";
