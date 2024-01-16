@@ -25,6 +25,9 @@ export const gameRouter = createTRPCRouter({
             },
           ],
         },
+        orderBy: {
+          date: "asc",
+        },
         select: {
           id: true,
           date: true,
