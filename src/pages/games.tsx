@@ -5,6 +5,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Table,
   TableBody,
   TableCell,
@@ -64,8 +65,8 @@ const GamesPage: React.FC<GamesPageProps> = () => {
     return predictedScore;
   }
 
-  const handleSeasonChange = (event: any) => {
-    setSeason(event.target.value);
+  const handleSeasonChange = (event: SelectChangeEvent<string | number>) => {
+    setSeason(event.target.value as number | string);
     gamesQuery.refetch().catch(console.error);
   };
 
