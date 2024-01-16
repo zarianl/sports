@@ -142,8 +142,8 @@ const GamesPage: React.FC<GamesPageProps> = () => {
                     <TableCell>{getPredictedScore(game)}</TableCell>
 
                     <TableCell>{game.estimatedHalfLine ?? " "}</TableCell>
-                    <TableCell>{game.awayPeriods[0] != null ? game.awayPeriods[0] : " "}</TableCell>
-                    <TableCell>{game.homePeriods[0] ?? " "}</TableCell>
+                    <TableCell>{game.awayPeriods?.[0] ?? " "}</TableCell>
+                    <TableCell>{game.homePeriods?.[0] ?? " "}</TableCell>
                     <TableCell>{game.actualHalfScore ?? " "}</TableCell>
                     <TableCell>{game.winLoss}</TableCell>
                   </TableRow>
