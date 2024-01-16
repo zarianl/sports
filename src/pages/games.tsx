@@ -15,8 +15,9 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import { Game, Team } from "@prisma/client";
 import {  useState } from "react";
-import type { GamesPageProps } from "~/types";
+import type { ExtendedGame, ExtendedTeam, GamesPageProps } from "~/types";
 import { api } from "~/utils/api";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
 
@@ -41,12 +42,12 @@ const GamesPage: React.FC<GamesPageProps> = () => {
     gamesQuery.refetch().catch(console.error);
   };
 
-  const getPredictedScore = (game: any) => {
+  const getPredictedScore = (game: unknown) => {
     let predictedScore = 0;
     let awayScore = 0;
     let homeScore = 0;
-    const awayTeam = game.awayTeam;
-    const homeTeam = game.homeTeam;
+    const awayTeam = (game as ExtendedGame).awayTeam as ExtendedTeam;
+    const homeTeam = (game as ExtendedGame).homeTeam as ExtendedTeam;
     awayScore = Math.round(
       ((getAverageFirstHalfScore(homeTeam, "home", "scores", season) +
         getAverageFirstHalfScore(awayTeam, "away", "allow", season)) /
