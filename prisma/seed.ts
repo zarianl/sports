@@ -8,7 +8,7 @@ const options = {
   url: "https://sportspage-feeds.p.rapidapi.com/games",
   params: {
     league: "NCAAB",
-    date: `2023-11-24,2023-12-19`,
+    date: `2024-01-01,2024-01-20`,
     skip: 0,
   },
   headers: {
@@ -42,7 +42,7 @@ export async function seedGames() {
             mascot: game.teams.away.mascot,
             location: game.teams.away.location,
             conference: game.teams.away.conference || undefined,
-            division: game.teams.away?.division || null,
+            division: game.teams?.away?.division || undefined,
           },
           include: { awayGames: true, homeGames: true },
         });

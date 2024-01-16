@@ -4,12 +4,28 @@ export const getAverageFirstHalfScore = (
   team: ExtendedTeam,
   homeOrAway: "home" | "away",
   scoresOrAllow: "scores" | "allow",
+  season?: number | string,
 ) => {
   let totalScore = 0;
   let totalGames = 0;
 
+  const awayGames = team.awayGames.filter((game) => {
+    if (season && typeof season === "number") {
+      return game.season === season;
+    }
+    return true;
+  }
+  );
+  const homeGames = team.homeGames.filter((game) => {
+    if (season && typeof season === "number") {
+      return game.season === season;
+    }
+    return true;
+  }
+  );
+
   try {
-    team.awayGames.forEach((game) => {
+    awayGames.forEach((game) => {
       if (
         scoresOrAllow === "scores" &&
         homeOrAway === "away" &&
@@ -30,7 +46,7 @@ export const getAverageFirstHalfScore = (
       }
     });
 
-    team.homeGames.forEach((game) => {
+    homeGames.forEach((game) => {
       if (
         scoresOrAllow === "scores" &&
         homeOrAway === "home" &&

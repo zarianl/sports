@@ -1,6 +1,10 @@
 import {
   AppBar,
   Container,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Table,
   TableBody,
   TableCell,
@@ -14,11 +18,13 @@ import {
 import {  useState } from "react";
 import type { GamesPageProps } from "~/types";
 import { api } from "~/utils/api";
+import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
 
 const today = new Date();
 
 const GamesPage: React.FC<GamesPageProps> = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const [season, setSeason] = useState<number | string>(2023);
   const gamesQuery =
     api.games.getGamesByDate.useQuery(selectedDate);
 
@@ -32,6 +38,33 @@ const GamesPage: React.FC<GamesPageProps> = () => {
       return;
     }
     setSelectedDate(date);
+    gamesQuery.refetch().catch(console.error);
+  };
+
+  const getPredictedScore = (game: any) => {
+    let predictedScore = 0;
+    let awayScore = 0;
+    let homeScore = 0;
+    const awayTeam = game.awayTeam;
+    const homeTeam = game.homeTeam;
+    awayScore = Math.round(
+      ((getAverageFirstHalfScore(homeTeam, "home", "scores", season) +
+        getAverageFirstHalfScore(awayTeam, "away", "allow", season)) /
+        2) *
+        10,
+    ) / 10;
+    homeScore = Math.round(
+      ((getAverageFirstHalfScore(awayTeam, "away", "scores", season) +
+        getAverageFirstHalfScore(homeTeam, "home", "allow", season)) /
+        2) *
+        10,
+    ) / 10;
+    predictedScore = Math.round((awayScore + homeScore) * 10) / 10;
+    return predictedScore;
+  }
+
+  const handleSeasonChange = (event: any) => {
+    setSeason(event.target.value);
     gamesQuery.refetch().catch(console.error);
   };
 
@@ -52,6 +85,18 @@ const GamesPage: React.FC<GamesPageProps> = () => {
                 shrink: true,
               }}
             />
+            <FormControl>
+              <InputLabel id="season-select-label">Season</InputLabel>
+              <Select
+                labelId="season-select-label"
+                id="season-select"
+                value={season}
+                onChange={handleSeasonChange}
+              >
+                <MenuItem value={2023}>2023</MenuItem>
+                <MenuItem value="all">All</MenuItem>
+              </Select>
+            </FormControl>
             {/* Wins: {wins}
             Losses: {loss}
             Win Rate: {wins && loss ? ((loss / wins) * 100).toFixed(2) : "N/A"}%
@@ -94,7 +139,7 @@ const GamesPage: React.FC<GamesPageProps> = () => {
                         timeZone: "America/Chicago",
                       })}
                     </TableCell>
-                    <TableCell>{game.predictedHalfScore}</TableCell>
+                    <TableCell>{getPredictedScore(game)}</TableCell>
 
                     <TableCell>{game.estimatedHalfLine ?? " "}</TableCell>
                     <TableCell>{game.awayPeriods[0]}</TableCell>

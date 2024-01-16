@@ -1,58 +1,55 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@index([name])
+  @@index([name])
 }
 
 model Team {
-    id           Int      @id @default(autoincrement())
-    team         String   @unique
-    mascot       String
-    location     String
-    conference   String?
-    division     String?
-    league       String?
-    abbreviation String?
-    createdAt    DateTime @default(now())
-    updatedAt    DateTime @updatedAt
-    awayGames    Game[]   @relation("AwayTeam")
-    homeGames    Game[]   @relation("HomeTeam")
-    @@index([team])
+  id           Int      @id @default(autoincrement())
+  team         String   @unique
+  mascot       String
+  location     String
+  conference   String?
+  division     String?
+  league       String?
+  abbreviation String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  awayGames    Game[]   @relation("AwayTeam")
+  homeGames    Game[]   @relation("HomeTeam")
+  @@index([team])
 }
 
 model Game {
-    id                 Int      @id @default(autoincrement())
-    date               DateTime
-    seasonType         String
-    season             Int
-    gameId             Int      @unique
-    awayTeamId         Int
-    homeTeamId         Int
-    awayTeam           Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
-    homeTeam           Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
-    createdAt          DateTime @default(now())
-    updatedAt          DateTime @updatedAt
-    predictedHalfScore Float
-    actualHalfScore    Int?
-    estimatedHalfLine  Float?
-    overUnder          String?
-    winLoss            String?
-    gameData           Json?
-    homePeriods        Int[]    @default([])
-    awayPeriods        Int[]    @default([])
+  id                 Int      @id @default(autoincrement())
+  date               DateTime
+  seasonType         String
+  season             Int
+  gameId             Int      @unique
+  awayTeamId         Int
+  homeTeamId         Int
+  awayPeriods        Json
+  homePeriods        Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  predictedHalfScore Float
+  actualHalfScore    Int?
+  estimatedHalfLine  Float?
+  overUnder          String?
+  winLoss            String?
+  gameData           Json
+  awayTeam           Team     @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeam           Team     @relation("HomeTeam", fields: [homeTeamId], references: [id])
 }
