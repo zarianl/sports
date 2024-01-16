@@ -1,3 +1,4 @@
+import { Game } from "@prisma/client";
 import { type ExtendedTeam } from "~/types";
 
 export const getAverageFirstHalfScore = (
@@ -11,14 +12,14 @@ export const getAverageFirstHalfScore = (
 
   const awayGames = team.awayGames.filter((game) => {
     if (season && typeof season === "number") {
-      return game.season === season;
+      return (game as Game).season === season;
     }
     return true;
   }
   );
   const homeGames = team.homeGames.filter((game) => {
     if (season && typeof season === "number") {
-      return game.season === season;
+      return (game as Game).season === season;
     }
     return true;
   }
