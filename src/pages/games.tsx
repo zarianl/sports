@@ -15,6 +15,7 @@ import {
   TextField,
   Toolbar,
   Typography,
+  Pagination,
 } from "@mui/material";
 import {  useState } from "react";
 import type { ExtendedGame, ExtendedTeam, GamesPageProps } from "~/types";
@@ -26,8 +27,10 @@ const today = new Date();
 const GamesPage: React.FC<GamesPageProps> = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [season, setSeason] = useState<number | string>(2023);
+  const [skip, setSkip] = useState<number>(0);
+
   const gamesQuery =
-    api.games.getGamesByDate.useQuery(selectedDate);
+    api.games.getGamesByDate.useQuery({ date: selectedDate, limit: 10, skip: skip });
 
   if (gamesQuery.isLoading) {
     return <div>Loading...</div>;
@@ -113,7 +116,7 @@ const GamesPage: React.FC<GamesPageProps> = () => {
           </Typography>
         </Toolbar>
       </AppBar>
-      {Array.isArray(gamesQuery.data) && gamesQuery.data.length > 0 && (
+      {Array.isArray(gamesQuery.data?.games) && gamesQuery.data.games.length > 0 && (
         <TableContainer>
           <Table>
             <TableHead>
@@ -130,7 +133,7 @@ const GamesPage: React.FC<GamesPageProps> = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {gamesQuery.data?.map((game, index) => {
+              {gamesQuery.data?.games.map((game, index) => {
                 return (
                   <TableRow key={index}>
                     <TableCell>{game.awayTeam?.team}</TableCell>
@@ -153,7 +156,16 @@ const GamesPage: React.FC<GamesPageProps> = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        
       )}
+      <Pagination
+          count={Math.ceil((gamesQuery.data?.totalCount ?? 0) / 10)}
+          variant="outlined"
+          shape="rounded"
+          onChange={(event, page) => {
+            setSkip((page - 1) * 10);
+          }}
+        />
     </Container>
   );
 };

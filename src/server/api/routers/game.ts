@@ -12,11 +12,15 @@ function isDaylightSaving(date: Date): boolean {
 }
 
 export const gameRouter = createTRPCRouter({
-  getGamesByDate: publicProcedure.input(z.date()).query(({ ctx, input }) => {
+  getGamesByDate: publicProcedure.input(z.object({
+    date: z.date(),
+    limit: z.number().optional(),
+    skip: z.number().optional(),
+  })).query(async({ ctx, input }) => {
     try {
-       // Parse the input as a UTC date string "YYYY-MM-DD"
+      // Parse the input as a UTC date string "YYYY-MM-DD"
       console.log("input", input)
-      const inputDate = new Date(input);
+      const inputDate = new Date(input.date);
 
       // Determine if the input date is in CST or CDT
       const centralTimeOffset = isDaylightSaving(inputDate) ? -5 : -6;
@@ -30,7 +34,7 @@ export const gameRouter = createTRPCRouter({
       // Create a Date object for the start of the next day in Central Time
       const tomorrowCentralTime = new Date(inputDate);
       tomorrowCentralTime.setUTCDate(todayCentralTime.getUTCDate() + 1);
-      const games = ctx.db.game.findMany({
+      const gamesPromise = ctx.db.game.findMany({
         where: {
           AND: [
             {
@@ -48,6 +52,8 @@ export const gameRouter = createTRPCRouter({
         orderBy: {
           date: "asc",
         },
+        take: input.limit,
+        skip: input.skip,
         select: {
           id: true,
           date: true,
@@ -76,13 +82,28 @@ export const gameRouter = createTRPCRouter({
           estimatedHalfLine: true,
           winLoss: true,
         },
-      }).then((data) => {
-        return data;
-      }).catch((error) => {
-        console.error("Error fetching games:", error);
-        throw new Error("Failed to fetch games");
-      })
-      return games;
+      });
+      const countPromise = ctx.db.game.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: todayCentralTime,
+              },
+            },
+            {
+              date: {
+                lt: tomorrowCentralTime,
+              },
+            },
+          ],
+        },
+      });
+      const [games, totalCount] = await Promise.all([gamesPromise, countPromise]);
+      return {
+        games,
+        totalCount,
+      };
     } catch (error) {
       console.error("Error fetching games:", error);
       throw new Error("Failed to fetch games");
