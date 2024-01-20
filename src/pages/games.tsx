@@ -116,7 +116,7 @@ const GamesPage: React.FC<GamesPageProps> = () => {
           </Typography>
         </Toolbar>
       </AppBar>
-      {Array.isArray(gamesQuery.data?.games) && gamesQuery.data.games.length > 0 && (
+      {Array.isArray(gamesQuery.data?.games) && gamesQuery.data?.games.length > 0 && (
         <TableContainer>
           <Table>
             <TableHead>
