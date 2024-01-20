@@ -5,22 +5,29 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 export const gameRouter = createTRPCRouter({
   getGamesByDate: publicProcedure.input(z.date()).query(({ ctx, input }) => {
     try {
-      const today = new Date(input);
-      console.log(today);
-      // today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+       // Parse the input as a UTC date string "YYYY-MM-DD"
+       console.log("input", input)
+       const inputDate = new Date(input);
+       console.log("inputDate", inputDate)
+       const inputAsUTC = Date.UTC(inputDate.getUTCFullYear(), inputDate.getUTCMonth(), inputDate.getUTCDate());
+ 
+       // Create a Date object for the start of the input day in UTC
+       const todayUTC = new Date(inputAsUTC);
+ 
+       // Create a Date object for the start of the next day in UTC
+       const tomorrowUTC = new Date(inputAsUTC);
+       tomorrowUTC.setUTCDate(todayUTC.getUTCDate() + 1);
       const games = ctx.db.game.findMany({
         where: {
           AND: [
             {
               date: {
-                gte: today,
+                gte: todayUTC,
               },
             },
             {
               date: {
-                lt: tomorrow,
+                lt: tomorrowUTC,
               },
             },
           ],
