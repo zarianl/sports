@@ -21,7 +21,7 @@ import type { ExtendedGame, ExtendedTeam, GamesPageProps } from "~/types";
 import { api } from "~/utils/api";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
 
-const today = new Date('2024-01-10T00:00:00.000Z');
+const today = new Date();
 
 const GamesPage: React.FC<GamesPageProps> = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
