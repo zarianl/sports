@@ -30,7 +30,7 @@ const GamesPage: React.FC<GamesPageProps> = () => {
   const [skip, setSkip] = useState<number>(0);
 
   const gamesQuery =
-    api.games.getGamesByDate.useQuery({ date: selectedDate, limit: 10, skip: skip });
+    api.games.getGamesByDate.useQuery({ date: selectedDate, limit: 50, skip: skip });
 
   if (gamesQuery.isLoading) {
     return <div>Loading...</div>;
@@ -159,11 +159,11 @@ const GamesPage: React.FC<GamesPageProps> = () => {
         
       )}
       <Pagination
-          count={Math.ceil((gamesQuery.data?.totalCount ?? 0) / 10)}
+          count={Math.ceil((gamesQuery.data?.totalCount ?? 0) / 50)}
           variant="outlined"
           shape="rounded"
           onChange={(event, page) => {
-            setSkip((page - 1) * 10);
+            setSkip((page - 1) * 50);
           }}
         />
     </Container>
