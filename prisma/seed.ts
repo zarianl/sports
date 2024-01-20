@@ -1,5 +1,5 @@
 import axios from "axios";
-import { type SportspageGameFeed } from "~/types";
+import { type SportspageGame, type SportspageGameFeed } from "~/types";
 import { getAverageFirstHalfScore } from "~/utils/getAverageFirstHalfScore";
 import { db } from "~/server/db";
 
@@ -124,7 +124,7 @@ export async function seedGames() {
               estimatedHalfLine: estimatedHalfLine,
               actualHalfScore: actualHalfLine,
               winLoss: winLoss,
-              gameData: JSON.parse(JSON.stringify(game)),
+              gameData: JSON.stringify(game as SportspageGame),
             },
           });
         } else {
@@ -147,7 +147,7 @@ export async function seedGames() {
               actualHalfScore: actualHalfLine,
               overUnder: overUnder,
               winLoss: winLoss,
-              gameData: JSON.parse(JSON.stringify(game)),
+              gameData: JSON.stringify(game as SportspageGame),
             },
           });
         }

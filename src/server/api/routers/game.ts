@@ -8,7 +8,7 @@ export const gameRouter = createTRPCRouter({
        // Parse the input as a UTC date string "YYYY-MM-DD"
        console.log("input", input)
        const inputDate = new Date(input);
-       console.log("inputDate", inputDate)
+       
        const inputAsUTC = Date.UTC(inputDate.getUTCFullYear(), inputDate.getUTCMonth(), inputDate.getUTCDate());
  
        // Create a Date object for the start of the input day in UTC
