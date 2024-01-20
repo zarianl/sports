@@ -2,32 +2,45 @@ import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
+// Helper function to determine if a date is during Daylight Saving Time in the Central Time Zone
+function isDaylightSaving(date: Date): boolean {
+  const year = date.getFullYear();
+  // Start and end dates of DST for the Central Time Zone
+  const dstStart = new Date(`March 14, ${year} 02:00:00 CST`);
+  const dstEnd = new Date(`November 07, ${year} 02:00:00 CST`);
+  return date >= dstStart && date < dstEnd;
+}
+
 export const gameRouter = createTRPCRouter({
   getGamesByDate: publicProcedure.input(z.date()).query(({ ctx, input }) => {
     try {
        // Parse the input as a UTC date string "YYYY-MM-DD"
-       console.log("input", input)
-       const inputDate = new Date(input);
-       
-       const inputAsUTC = Date.UTC(inputDate.getUTCFullYear(), inputDate.getUTCMonth(), inputDate.getUTCDate());
- 
-       // Create a Date object for the start of the input day in UTC
-       const todayUTC = new Date(inputAsUTC);
- 
-       // Create a Date object for the start of the next day in UTC
-       const tomorrowUTC = new Date(inputAsUTC);
-       tomorrowUTC.setUTCDate(todayUTC.getUTCDate() + 1);
+      console.log("input", input)
+      const inputDate = new Date(input);
+
+      // Determine if the input date is in CST or CDT
+      const centralTimeOffset = isDaylightSaving(inputDate) ? -5 : -6;
+
+      // Adjust the input date to the beginning of the day in Central Time
+      inputDate.setUTCHours(-centralTimeOffset, 0, 0, 0);
+
+      // Create a Date object for the start of the input day in Central Time
+      const todayCentralTime = new Date(inputDate);
+
+      // Create a Date object for the start of the next day in Central Time
+      const tomorrowCentralTime = new Date(inputDate);
+      tomorrowCentralTime.setUTCDate(todayCentralTime.getUTCDate() + 1);
       const games = ctx.db.game.findMany({
         where: {
           AND: [
             {
               date: {
-                gte: todayUTC,
+                gte: todayCentralTime,
               },
             },
             {
               date: {
-                lt: tomorrowUTC,
+                lt: tomorrowCentralTime,
               },
             },
           ],

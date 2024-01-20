@@ -8,7 +8,7 @@ const options = {
   url: "https://sportspage-feeds.p.rapidapi.com/games",
   params: {
     league: "NCAAB",
-    date: `2024-01-17,2024-01-21`,
+    date: `2024-01-17,2024-01-22`,
     skip: 0,
   },
   headers: {
